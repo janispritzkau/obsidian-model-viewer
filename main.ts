@@ -161,7 +161,9 @@ class ModelViewerFileView extends FileView {
 		if (!settings.interactionPrompt) viewer.interactionPrompt = "none";
 	}
 
-	async onUnloadFile(file: TFile): Promise<void> {}
+	async onUnloadFile(file: TFile): Promise<void> {
+		this.contentEl.empty();
+	}
 }
 
 class ModelViewerSettingTab extends PluginSettingTab {
