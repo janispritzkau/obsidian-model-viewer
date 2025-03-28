@@ -20,6 +20,7 @@ interface ModelViewerSettings {
 	disableZoom: boolean;
 	autoRotate: boolean;
 	interactionPrompt: boolean;
+	autoplay: boolean;
 }
 
 const DEFAULT_SETTINGS: ModelViewerSettings = {
@@ -28,6 +29,7 @@ const DEFAULT_SETTINGS: ModelViewerSettings = {
 	disableZoom: false,
 	autoRotate: true,
 	interactionPrompt: true,
+	autoplay: true,
 };
 
 export default class ModelViewerPlugin extends Plugin {
@@ -122,6 +124,7 @@ class ModelViewerComponent extends Component {
 		if (settings.disableZoom) this.viewer.disableZoom = true;
 		if (settings.autoRotate) this.viewer.autoRotate = true;
 		if (!settings.interactionPrompt) this.viewer.interactionPrompt = "none";
+		if (settings.autoplay) this.viewer.autoplay = true;
 	}
 }
 
@@ -159,6 +162,7 @@ class ModelViewerFileView extends FileView {
 		if (settings.disableZoom) viewer.disableZoom = true;
 		if (settings.autoRotate) viewer.autoRotate = true;
 		if (!settings.interactionPrompt) viewer.interactionPrompt = "none";
+		if (settings.autoplay) viewer.autoplay = true;
 	}
 
 	async onUnloadFile(file: TFile): Promise<void> {
