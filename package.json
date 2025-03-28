@@ -1,7 +1,7 @@
 {
-	"name": "obsidian-sample-plugin",
+	"name": "obsidian-model-viewer",
 	"version": "1.0.0",
-	"description": "This is a sample plugin for Obsidian (https://obsidian.md)",
+	"description": "An Obsidian plugin to view and embed 3D models using Google’s <model-viewer> component.",
 	"main": "main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
