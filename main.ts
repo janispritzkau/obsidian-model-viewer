@@ -27,9 +27,9 @@ const DEFAULT_SETTINGS: ModelViewerSettings = {
 	cameraControls: true,
 	disablePan: false,
 	disableZoom: false,
-	autoRotate: true,
-	interactionPrompt: true,
-	autoplay: true,
+	autoRotate: false,
+	interactionPrompt: false,
+	autoplay: false,
 };
 
 export default class ModelViewerPlugin extends Plugin {
