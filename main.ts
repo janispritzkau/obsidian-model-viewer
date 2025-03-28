@@ -49,8 +49,15 @@ export default class ModelViewerPlugin extends Plugin {
 		// @ts-expect-error
 		this.app.embedRegistry.registerExtensions(
 			["gltf", "glb"],
-			(context: { containerEl: HTMLElement }, file: TFile) =>
-				new ModelViewerComponent(this, context.containerEl, file)
+			(context: { containerEl: HTMLElement; linktext?: string }, file: TFile) => {
+				let params: URLSearchParams;
+				try {
+					params = new URLSearchParams(context.linktext?.match(/#(.+)$/)?.[1]);
+				} catch {
+					params = new URLSearchParams();
+				}
+				return new ModelViewerComponent(this, context.containerEl, file, params);
+			}
 		);
 	}
 
@@ -73,8 +80,14 @@ class ModelViewerComponent extends Component {
 	containerEl: HTMLElement;
 	file: TFile;
 	viewer: ModelViewerElement;
+	params: URLSearchParams;
 
-	constructor(plugin: ModelViewerPlugin, containerEl: HTMLElement, file: TFile) {
+	constructor(
+		plugin: ModelViewerPlugin,
+		containerEl: HTMLElement,
+		file: TFile,
+		params: URLSearchParams
+	) {
 		super();
 		this.plugin = plugin;
 		this.containerEl = containerEl;
@@ -89,6 +102,7 @@ class ModelViewerComponent extends Component {
 			attributes: true,
 			attributeFilter: ["width"],
 		});
+		this.params = params;
 	}
 
 	onunload(): void {
@@ -111,6 +125,20 @@ class ModelViewerComponent extends Component {
 		this.viewer = document.createElement("model-viewer");
 		this.viewer.src = this.plugin.app.vault.getResourcePath(this.file);
 		this.containerEl.appendChild(this.viewer);
+
+		const height = this.params.get("height");
+		if (height) {
+			this.viewer.style.height = height + "px";
+			this.viewer.style.maxHeight = "unset";
+			this.params.delete("height");
+		}
+
+		const aspect = this.params.get("aspect");
+		if (aspect) {
+			this.viewer.style.aspectRatio = aspect;
+			this.params.delete("aspect");
+		}
+
 		const settings = this.plugin.settings;
 		if (settings.cameraControls) this.viewer.cameraControls = true;
 		if (settings.disablePan) this.viewer.disablePan = true;
@@ -118,6 +146,14 @@ class ModelViewerComponent extends Component {
 		if (settings.autoRotate) this.viewer.autoRotate = true;
 		if (!settings.interactionPrompt) this.viewer.interactionPrompt = "none";
 		if (settings.autoplay) this.viewer.autoplay = true;
+
+		for (const [key, value] of this.params.entries()) {
+			if (value == "false") {
+				this.viewer.removeAttribute(key);
+			} else {
+				this.viewer.setAttribute(key, value);
+			}
+		}
 
 		this.viewer.addEventListener(
 			"touchstart",
@@ -165,6 +201,9 @@ class ModelViewerFileView extends FileView {
 		if (settings.autoRotate) viewer.autoRotate = true;
 		if (!settings.interactionPrompt) viewer.interactionPrompt = "none";
 		if (settings.autoplay) viewer.autoplay = true;
+
+		viewer.fieldOfView = "50deg";
+		viewer.maxFieldOfView = "75deg";
 
 		viewer.addEventListener(
 			"touchstart",
