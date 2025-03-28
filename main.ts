@@ -49,15 +49,8 @@ export default class ModelViewerPlugin extends Plugin {
 		// @ts-expect-error
 		this.app.embedRegistry.registerExtensions(
 			["gltf", "glb"],
-			(
-				context: {
-					containerEl: HTMLElement;
-					displayMode: boolean;
-					linktext: string;
-					showInline: boolean;
-				},
-				file: TFile
-			) => new ModelViewerComponent(this, context.containerEl, file)
+			(context: { containerEl: HTMLElement }, file: TFile) =>
+				new ModelViewerComponent(this, context.containerEl, file)
 		);
 	}
 
@@ -125,6 +118,15 @@ class ModelViewerComponent extends Component {
 		if (settings.autoRotate) this.viewer.autoRotate = true;
 		if (!settings.interactionPrompt) this.viewer.interactionPrompt = "none";
 		if (settings.autoplay) this.viewer.autoplay = true;
+
+		this.viewer.addEventListener(
+			"touchstart",
+			(e) => {
+				e.preventDefault();
+				e.stopPropagation();
+			},
+			{ passive: false }
+		);
 	}
 }
 
@@ -163,6 +165,15 @@ class ModelViewerFileView extends FileView {
 		if (settings.autoRotate) viewer.autoRotate = true;
 		if (!settings.interactionPrompt) viewer.interactionPrompt = "none";
 		if (settings.autoplay) viewer.autoplay = true;
+
+		viewer.addEventListener(
+			"touchstart",
+			(e) => {
+				e.preventDefault();
+				e.stopPropagation();
+			},
+			{ passive: false }
+		);
 	}
 
 	async onUnloadFile(file: TFile): Promise<void> {
@@ -225,6 +236,15 @@ class ModelViewerSettingTab extends PluginSettingTab {
 			.addToggle((toggle) =>
 				toggle.setValue(this.plugin.settings.interactionPrompt).onChange(async (value) => {
 					this.plugin.settings.interactionPrompt = value;
+					await this.plugin.saveSettings();
+				})
+			);
+		new Setting(containerEl)
+			.setName("Autoplay")
+			.setDesc("Enable autoplay of the model")
+			.addToggle((toggle) =>
+				toggle.setValue(this.plugin.settings.autoplay).onChange(async (value) => {
+					this.plugin.settings.autoplay = value;
 					await this.plugin.saveSettings();
 				})
 			);
