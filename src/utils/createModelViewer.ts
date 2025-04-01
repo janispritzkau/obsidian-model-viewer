@@ -5,12 +5,12 @@ export function createModelViewer(app: App, file: TFile, settings: ModelViewerSe
 	const viewer = document.createElement("model-viewer");
 	viewer.src = app.vault.getResourcePath(file);
 
-	if (settings.cameraControls) viewer.cameraControls = true;
-	if (settings.disablePan) viewer.disablePan = true;
-	if (settings.disableZoom) viewer.disableZoom = true;
-	if (settings.autoRotate) viewer.autoRotate = true;
-	if (!settings.interactionPrompt) viewer.interactionPrompt = "none";
-	if (settings.autoplay) viewer.autoplay = true;
+	if (settings.cameraControls) viewer.setAttribute("camera-controls", "");
+	if (settings.disablePan) viewer.setAttribute("disable-pan", "");
+	if (settings.disableZoom) viewer.setAttribute("disable-zoom", "");
+	if (settings.autoRotate) viewer.setAttribute("auto-rotate", "");
+	if (!settings.interactionPrompt) viewer.setAttribute("interaction-prompt", "none");
+	if (settings.autoplay) viewer.setAttribute("autoplay", "");
 
 	viewer.addEventListener(
 		"touchstart",
