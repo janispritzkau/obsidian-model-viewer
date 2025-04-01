@@ -10,4 +10,22 @@ This plugin allows you to view and embed interactive 3D models directly in your 
 
 ## Features
 
-==TODO==
+- Viewing and opening .glb and .gltf files in Obsidian
+- Embedding .glb and .gltf models in Markdown
+
+## Basic Usage
+
+```md
+## Simple embed
+
+![[DamagedHelmet.glb]]
+
+## Specifying attributes
+
+![[Fox.glb?autoplay&height=400]]
+```
+
+Supported attributes:
+
+- Embed-related attributes: `height`, `aspect`
+- \<model-viewer\> attributes (see https://modelviewer.dev/docs/)
