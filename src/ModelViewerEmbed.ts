@@ -63,6 +63,7 @@ export class ModelViewerEmbed extends Component {
 		const aspect = this.params.get("aspect");
 		if (aspect) {
 			this.viewer.style.aspectRatio = aspect;
+			this.viewer.style.maxHeight = "unset";
 			this.params.delete("aspect");
 		}
 
