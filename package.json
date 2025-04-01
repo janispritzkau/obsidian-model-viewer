@@ -23,6 +23,7 @@
 	},
 	"dependencies": {
 		"@google/model-viewer": "^4.0.0",
-		"change-case": "^5.4.4"
+		"change-case": "^5.4.4",
+		"three": "^0.169.0"
 	}
 }
