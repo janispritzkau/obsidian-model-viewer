@@ -1,4 +1,5 @@
-:is(.markdown-preview-view, .markdown-source-view) .model-viewer-embed {
+.model-viewer-embed {
+	position: relative;
 	display: inline-block;
 	border-radius: var(--radius-m);
 	background-color: var(--background-primary-alt);
@@ -15,4 +16,20 @@
 
 .popover .model-viewer-embed model-viewer {
 	width: 300px;
+}
+
+.model-viewer-variant-dropdown {
+	position: absolute;
+	inset: var(--size-4-4);
+	place-self: end start;
+	z-index: 1;
+}
+
+.model-viewer-animation-overlay {
+	position: absolute;
+	inset: var(--size-4-4);
+	place-self: start end;
+	z-index: 1;
+	display: flex;
+	gap: var(--size-4-2);
 }

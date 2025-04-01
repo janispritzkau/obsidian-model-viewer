@@ -1,5 +1,7 @@
 import { FileView, type TFile, type WorkspaceLeaf } from "obsidian";
 import type ModelViewerPlugin from "./main";
+import { addAnimationOverlay } from "./utils/addAnimationOverlay";
+import { addVariantSelector } from "./utils/addVariantSelector";
 import { createModelViewer } from "./utils/createModelViewer";
 
 export class ModelViewerFileView extends FileView {
@@ -19,10 +21,6 @@ export class ModelViewerFileView extends FileView {
 	}
 
 	async onLoadFile(file: TFile): Promise<void> {
-		this.displayInEl(file);
-	}
-
-	displayInEl(file: TFile) {
 		const viewer = createModelViewer(this.app, file, this.plugin.settings);
 
 		viewer.fieldOfView = "50deg";
@@ -33,9 +31,19 @@ export class ModelViewerFileView extends FileView {
 		viewer.style.height = "100%";
 
 		this.contentEl.appendChild(viewer);
+
+		viewer.addEventListener("load", () => {
+			if (viewer.availableVariants.length != 0) {
+				addVariantSelector(this.contentEl, viewer);
+			}
+
+			if (viewer.availableAnimations.length != 0) {
+				addAnimationOverlay(this.contentEl, viewer);
+			}
+		});
 	}
 
-	async onUnloadFile(file: TFile): Promise<void> {
+	async onUnloadFile(): Promise<void> {
 		this.contentEl.empty();
 	}
 }
