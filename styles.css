@@ -46,3 +46,22 @@
 	aspect-ratio: 1;
 	padding-inline: 0;
 }
+
+.block-language-model-viewer {
+	display: block;
+}
+
+.model-viewer-embed .hotspot {
+	background-color: var(--background-primary-alt);
+	padding: var(--size-4-3);
+	border-radius: var(--radius-m);
+	border: 1px solid var(--background-modifier-border);
+
+	& > :first-child {
+		margin-top: 0;
+	}
+
+	& > :last-child {
+		margin-bottom: 0;
+	}
+}
