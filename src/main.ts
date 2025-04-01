@@ -17,7 +17,7 @@ export default class ModelViewerPlugin extends Plugin {
 		this.addSettingTab(new ModelViewerSettingTab(this.app, this));
 
 		this.registerView("model-viewer-file-view", (leaf) => {
-			return new ModelViewerFileView(leaf, this);
+			return new ModelViewerFileView(leaf, this.settings);
 		});
 
 		this.registerExtensions(["glb", "gltf"], "model-viewer-file-view");
@@ -32,7 +32,14 @@ export default class ModelViewerPlugin extends Plugin {
 				} catch {
 					params = new URLSearchParams();
 				}
-				return new ModelViewerEmbed(this, context.containerEl, file, params);
+
+				return new ModelViewerEmbed(
+					this.app,
+					context.containerEl,
+					file,
+					this.settings,
+					Object.fromEntries(params.entries())
+				);
 			}
 		);
 	}

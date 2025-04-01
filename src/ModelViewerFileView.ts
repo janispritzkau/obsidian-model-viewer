@@ -1,15 +1,23 @@
+import type { ModelViewerElement } from "@google/model-viewer";
 import { FileView, type TFile, type WorkspaceLeaf } from "obsidian";
-import type ModelViewerPlugin from "./main";
-import { addAnimationOverlay } from "./utils/addAnimationOverlay";
-import { addVariantSelector } from "./utils/addVariantSelector";
-import { createModelViewer } from "./utils/createModelViewer";
+import { ModelViewerComponent } from "./ModelViewerComponent";
+import type { ModelViewerSettings } from "./settings";
 
 export class ModelViewerFileView extends FileView {
-	private plugin: ModelViewerPlugin;
+	private viewer: ModelViewerComponent;
+	private viewerEl: ModelViewerElement;
 
-	constructor(leaf: WorkspaceLeaf, plugin: ModelViewerPlugin) {
+	constructor(leaf: WorkspaceLeaf, settings: ModelViewerSettings) {
 		super(leaf);
-		this.plugin = plugin;
+		this.viewer = this.addChild(
+			new ModelViewerComponent(this.contentEl, settings, { overlay: true })
+		);
+		this.viewerEl = this.viewer.viewerEl;
+		this.viewerEl.fieldOfView = "50deg";
+		this.viewerEl.maxFieldOfView = "75deg";
+		this.viewerEl.style.position = "absolute";
+		this.viewerEl.style.width = "100%";
+		this.viewerEl.style.height = "100%";
 	}
 
 	getViewType(): string {
@@ -21,29 +29,10 @@ export class ModelViewerFileView extends FileView {
 	}
 
 	async onLoadFile(file: TFile): Promise<void> {
-		const viewer = createModelViewer(this.app, file, this.plugin.settings);
-
-		viewer.fieldOfView = "50deg";
-		viewer.maxFieldOfView = "75deg";
-
-		viewer.style.position = "absolute";
-		viewer.style.width = "100%";
-		viewer.style.height = "100%";
-
-		this.contentEl.appendChild(viewer);
-
-		viewer.addEventListener("load", () => {
-			if (viewer.availableVariants.length != 0) {
-				addVariantSelector(this.contentEl, viewer);
-			}
-
-			if (viewer.availableAnimations.length != 0) {
-				addAnimationOverlay(this.contentEl, viewer);
-			}
-		});
+		this.viewerEl.src = this.app.vault.getResourcePath(file);
 	}
 
 	async onUnloadFile(): Promise<void> {
-		this.contentEl.empty();
+		this.viewerEl.src = null;
 	}
 }
