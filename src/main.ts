@@ -3,15 +3,31 @@ import { ModelViewerEmbed } from "./ModelViewerEmbed";
 import { ModelViewerFileView } from "./ModelViewerFileView";
 import { ModelViewerSettingTab } from "./ModelViewerSettingTab";
 import { DEFAULT_SETTINGS, type ModelViewerSettings } from "./settings";
-
-if (customElements.get("model-viewer") == null) {
-	import("@google/model-viewer");
-}
+import { join } from "path";
 
 export default class ModelViewerPlugin extends Plugin {
 	settings: ModelViewerSettings = DEFAULT_SETTINGS;
 
 	async onload() {
+		if (customElements.get("model-viewer") == null) {
+			await import("@google/model-viewer");
+		}
+
+		const url = new URL(
+			this.app.vault.adapter.getResourcePath(
+				join(this.app.vault.configDir, "plugins", this.manifest.id)
+			)
+		);
+		url.search = "";
+
+		Object.assign(globalThis, {
+			ModelViewerElement: {
+				dracoDecoderLocation: url.href + "/lib/draco/",
+				ktx2TranscoderLocation: url.href + "/lib/basis/",
+				meshoptDecoderLocation: url.href + "/lib/meshopt_decoder.js",
+			},
+		});
+
 		await this.loadSettings();
 
 		this.addSettingTab(new ModelViewerSettingTab(this.app, this));
