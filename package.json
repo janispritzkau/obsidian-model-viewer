@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-model-viewer",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"description": "An Obsidian plugin to view and embed 3D models using Google’s <model-viewer> component.",
 	"main": "main.js",
 	"scripts": {
