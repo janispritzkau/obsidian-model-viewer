@@ -15,7 +15,7 @@ export class ModelViewerSettingTab extends PluginSettingTab {
 
 		containerEl.empty();
 
-		new Setting(containerEl).setHeading().setName("Model Viewer");
+		new Setting(containerEl).setHeading().setName("Model viewer");
 
 		new Setting(containerEl)
 			.setName("Attributes")
@@ -37,10 +37,10 @@ export class ModelViewerSettingTab extends PluginSettingTab {
 				});
 			});
 
-		new Setting(containerEl).setHeading().setName("File View");
+		new Setting(containerEl).setHeading().setName("File fiew");
 
 		new Setting(containerEl)
-			.setName("Enable Overlay")
+			.setName("Enable overlay")
 			.setDesc("Show overlay if the model has mulitple variants or animations")
 			.addToggle((toggle) => {
 				toggle.setValue(this.plugin.settings.fileView.enableOverlay);
@@ -72,7 +72,7 @@ export class ModelViewerSettingTab extends PluginSettingTab {
 		new Setting(containerEl).setHeading().setName("Embed");
 
 		new Setting(containerEl)
-			.setName("Aspect Ratio")
+			.setName("Aspect ratio")
 			.setDesc("The aspect ratio of the model viewer embed")
 			.addText((text) => {
 				text.setValue(this.plugin.settings.embed.aspectRatio);
@@ -83,7 +83,7 @@ export class ModelViewerSettingTab extends PluginSettingTab {
 			});
 
 		new Setting(containerEl)
-			.setName("Max Height")
+			.setName("Max height")
 			.setDesc("Scales the embed according to the aspect ratio until it reaches this height")
 			.addText((text) => {
 				text.setValue(this.plugin.settings.embed.maxHeight.toString());
@@ -94,7 +94,7 @@ export class ModelViewerSettingTab extends PluginSettingTab {
 			});
 
 		new Setting(containerEl)
-			.setName("Enable Overlay")
+			.setName("Enable overlay")
 			.setDesc("Show overlay if the model has mulitple variants or animations")
 			.addToggle((toggle) => {
 				toggle.setValue(this.plugin.settings.embed.enableOverlay);

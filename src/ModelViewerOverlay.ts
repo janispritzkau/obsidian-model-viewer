@@ -21,7 +21,7 @@ export class ModelViewerOverlay extends Component {
 			const dropdown = new DropdownComponent(this.containerEl);
 			dropdown.selectEl.addClass("model-viewer-variant-dropdown");
 
-			dropdown.addOption("", "Default Variant");
+			dropdown.addOption("", "Default variant");
 
 			for (const variant of this.viewer.availableVariants) {
 				dropdown.addOption(variant, `Variant: ${variant}`);
