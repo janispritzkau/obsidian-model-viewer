@@ -1,6 +1,6 @@
+import { kebabCase } from "change-case";
 import { App, PluginSettingTab, Setting } from "obsidian";
 import type ModelViewerPlugin from "./main";
-import { DEFAULT_SETTINGS } from "./settings";
 
 export class ModelViewerSettingTab extends PluginSettingTab {
 	plugin: ModelViewerPlugin;
@@ -15,72 +15,112 @@ export class ModelViewerSettingTab extends PluginSettingTab {
 
 		containerEl.empty();
 
+		new Setting(containerEl).setHeading().setName("Model Viewer");
+
 		new Setting(containerEl)
-			.setName("Camera Controls")
-			.setDesc("Enable camera controls for the model")
-			.addToggle((toggle) =>
-				toggle.setValue(this.plugin.settings.cameraControls).onChange(async (value) => {
-					this.plugin.settings.cameraControls = value;
+			.setName("Attributes")
+			.setDesc("URL-formatted attributes for the model viewer")
+			.addText((text) => {
+				const searchParams = new URLSearchParams(
+					Object.entries(this.plugin.settings.modelViewer.attributes).map(
+						([key, value]) => [kebabCase(key), value]
+					)
+				);
+				text.inputEl.style.minWidth = "300px";
+				text.setValue(searchParams.toString());
+				text.onChange(async (value) => {
+					const params = new URLSearchParams(value);
+					this.plugin.settings.modelViewer.attributes = Object.fromEntries(
+						params.entries()
+					);
 					await this.plugin.saveSettings();
-				})
-			);
+				});
+			});
+
+		new Setting(containerEl).setHeading().setName("File View");
+
 		new Setting(containerEl)
-			.setName("Disable Pan")
-			.setDesc("Disable panning the model")
-			.addToggle((toggle) =>
-				toggle.setValue(this.plugin.settings.disablePan).onChange(async (value) => {
-					this.plugin.settings.disablePan = value;
+			.setName("Enable Overlay")
+			.setDesc("Show overlay if the model has mulitple variants or animations")
+			.addToggle((toggle) => {
+				toggle.setValue(this.plugin.settings.fileView.enableOverlay);
+				toggle.onChange(async (value) => {
+					this.plugin.settings.fileView.enableOverlay = value;
 					await this.plugin.saveSettings();
-				})
-			);
+				});
+			});
+
 		new Setting(containerEl)
-			.setName("Disable Zoom")
-			.setDesc("Disable zooming the model")
-			.addToggle((toggle) =>
-				toggle.setValue(this.plugin.settings.disableZoom).onChange(async (value) => {
-					this.plugin.settings.disableZoom = value;
+			.setName("Attributes")
+			.setDesc("URL-formatted attributes for the model viewer")
+			.addText((text) => {
+				const searchParams = new URLSearchParams(
+					Object.entries(this.plugin.settings.fileView.attributes).map(([key, value]) => [
+						kebabCase(key),
+						value,
+					])
+				);
+				text.inputEl.style.minWidth = "300px";
+				text.setValue(searchParams.toString());
+				text.onChange(async (value) => {
+					const params = new URLSearchParams(value);
+					this.plugin.settings.fileView.attributes = Object.fromEntries(params.entries());
 					await this.plugin.saveSettings();
-				})
-			);
+				});
+			});
+
+		new Setting(containerEl).setHeading().setName("Embed");
+
 		new Setting(containerEl)
-			.setName("Auto Rotate")
-			.setDesc("Enable auto rotation of the model")
-			.addToggle((toggle) =>
-				toggle.setValue(this.plugin.settings.autoRotate).onChange(async (value) => {
-					this.plugin.settings.autoRotate = value;
+			.setName("Aspect Ratio")
+			.setDesc("The aspect ratio of the model viewer embed")
+			.addText((text) => {
+				text.setValue(this.plugin.settings.embed.aspectRatio);
+				text.onChange(async (value) => {
+					this.plugin.settings.embed.aspectRatio = value;
 					await this.plugin.saveSettings();
-				})
-			);
+				});
+			});
+
 		new Setting(containerEl)
-			.setName("Interaction Prompt")
-			.setDesc("Show prompt to interact with the model")
-			.addToggle((toggle) =>
-				toggle.setValue(this.plugin.settings.interactionPrompt).onChange(async (value) => {
-					this.plugin.settings.interactionPrompt = value;
+			.setName("Max Height")
+			.setDesc("Scales the embed according to the aspect ratio until it reaches this height")
+			.addText((text) => {
+				text.setValue(this.plugin.settings.embed.maxHeight.toString());
+				text.onChange(async (value) => {
+					this.plugin.settings.embed.maxHeight = parseInt(value);
 					await this.plugin.saveSettings();
-				})
-			);
+				});
+			});
+
 		new Setting(containerEl)
-			.setName("Autoplay")
-			.setDesc("Enable autoplay of the model")
-			.addToggle((toggle) =>
-				toggle.setValue(this.plugin.settings.autoplay).onChange(async (value) => {
-					this.plugin.settings.autoplay = value;
+			.setName("Enable Overlay")
+			.setDesc("Show overlay if the model has mulitple variants or animations")
+			.addToggle((toggle) => {
+				toggle.setValue(this.plugin.settings.embed.enableOverlay);
+				toggle.onChange(async (value) => {
+					this.plugin.settings.embed.enableOverlay = value;
 					await this.plugin.saveSettings();
-				})
-			);
+				});
+			});
+
 		new Setting(containerEl)
-			.setName("Reset Settings")
-			.setDesc("Reset settings to default")
-			.addButton((button) =>
-				button
-					.setButtonText("Reset to default")
-					.setWarning()
-					.onClick(async () => {
-						this.plugin.settings = DEFAULT_SETTINGS;
-						await this.plugin.saveSettings();
-						this.display();
-					})
-			);
+			.setName("Attributes")
+			.setDesc("URL-formatted attributes for the model viewer")
+			.addText((text) => {
+				const searchParams = new URLSearchParams(
+					Object.entries(this.plugin.settings.embed.attributes).map(([key, value]) => [
+						kebabCase(key),
+						value,
+					])
+				);
+				text.inputEl.style.minWidth = "300px";
+				text.setValue(searchParams.toString());
+				text.onChange(async (value) => {
+					const params = new URLSearchParams(value);
+					this.plugin.settings.embed.attributes = Object.fromEntries(params.entries());
+					await this.plugin.saveSettings();
+				});
+			});
 	}
 }

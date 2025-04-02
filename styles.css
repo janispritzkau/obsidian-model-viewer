@@ -3,19 +3,12 @@
 	display: inline-block;
 	border-radius: var(--radius-m);
 	background-color: var(--background-primary-alt);
+	max-width: 100%;
 }
 
 .model-viewer-embed model-viewer {
-	aspect-ratio: 1;
 	width: 100%;
-	height: 100%;
-	max-width: 100%;
-	min-height: 150px;
-	max-height: 450px;
-}
-
-.popover .model-viewer-embed model-viewer {
-	width: 300px;
+	height: auto;
 }
 
 .model-viewer-variant-dropdown {

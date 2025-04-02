@@ -9,7 +9,7 @@ if (customElements.get("model-viewer") == null) {
 }
 
 export default class ModelViewerPlugin extends Plugin {
-	settings!: ModelViewerSettings;
+	settings: ModelViewerSettings = DEFAULT_SETTINGS;
 
 	async onload() {
 		await this.loadSettings();
@@ -25,7 +25,10 @@ export default class ModelViewerPlugin extends Plugin {
 		// @ts-expect-error
 		this.app.embedRegistry.registerExtensions(
 			["gltf", "glb"],
-			(context: { containerEl: HTMLElement; linktext?: string }, file: TFile) => {
+			(
+				context: { containerEl: HTMLElement; linktext?: string; showInline?: boolean },
+				file: TFile
+			) => {
 				let params: URLSearchParams;
 				try {
 					params = new URLSearchParams(context.linktext?.match(/#(.+)$/)?.[1]);
@@ -50,7 +53,11 @@ export default class ModelViewerPlugin extends Plugin {
 	}
 
 	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		const data = await this.loadData();
+		for (const key in data) {
+			// @ts-expect-error
+			this.settings[key] = Object.assign({}, this.settings[key], data[key]);
+		}
 	}
 
 	async saveSettings() {

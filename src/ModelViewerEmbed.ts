@@ -1,6 +1,6 @@
 import type { ModelViewerElement } from "@google/model-viewer";
 import { Component, type App, type TFile } from "obsidian";
-import { ModelViewerComponent } from "./ModelViewerComponent";
+import { ModelViewerComponent, type ModelViewerComponentOptions } from "./ModelViewerComponent";
 import type { ModelViewerSettings } from "./settings";
 
 export class ModelViewerEmbed extends Component {
@@ -13,7 +13,7 @@ export class ModelViewerEmbed extends Component {
 		private containerEl: HTMLElement,
 		private file: TFile,
 		settings: ModelViewerSettings,
-		attributes: Record<string, string> = {}
+		{ overlay, aspect, height, ...attributes }: Record<string, string> = {}
 	) {
 		super();
 		containerEl.addClass("model-viewer-embed");
@@ -23,7 +23,31 @@ export class ModelViewerEmbed extends Component {
 			this.updateWidth();
 		});
 
-		this.viewer = this.addChild(new ModelViewerComponent(containerEl, settings, attributes));
+		const options: ModelViewerComponentOptions = {
+			enableOverlay: settings.embed.enableOverlay,
+			aspectRatio: settings.embed.aspectRatio,
+			maxHeight: settings.embed.maxHeight,
+			attributes: {
+				...settings.modelViewer.attributes,
+				...settings.embed.attributes,
+				...attributes,
+			},
+		};
+
+		if (overlay != null) {
+			options.enableOverlay = overlay != "false";
+		}
+
+		if (aspect != null) {
+			options.aspectRatio = aspect;
+		}
+
+		if (height != null) {
+			options.height = parseInt(height);
+		}
+
+		this.viewer = this.addChild(new ModelViewerComponent(containerEl, options));
+
 		this.viewerEl = this.viewer.viewerEl;
 	}
 
@@ -44,6 +68,6 @@ export class ModelViewerEmbed extends Component {
 
 	private updateWidth() {
 		const width = this.containerEl.getAttribute("width");
-		this.containerEl.style.width = width ? `${width}px` : "100%";
+		this.containerEl.style.width = width ? `${width}px` : "";
 	}
 }

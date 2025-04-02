@@ -1,17 +1,34 @@
 export interface ModelViewerSettings {
-	cameraControls: boolean;
-	disablePan: boolean;
-	disableZoom: boolean;
-	autoRotate: boolean;
-	interactionPrompt: boolean;
-	autoplay: boolean;
+	modelViewer: {
+		attributes: Record<string, string>;
+	};
+	fileView: {
+		enableOverlay: boolean;
+		attributes: Record<string, string>;
+	};
+	embed: {
+		aspectRatio: string;
+		maxHeight: number;
+		enableOverlay: boolean;
+		attributes: Record<string, string>;
+	};
 }
 
 export const DEFAULT_SETTINGS: ModelViewerSettings = {
-	cameraControls: true,
-	disablePan: false,
-	disableZoom: false,
-	autoRotate: false,
-	interactionPrompt: false,
-	autoplay: false,
+	modelViewer: {
+		attributes: {
+			cameraControls: "true",
+			autoRotate: "true",
+		},
+	},
+	fileView: {
+		enableOverlay: true,
+		attributes: {},
+	},
+	embed: {
+		aspectRatio: "1:1",
+		maxHeight: 300,
+		enableOverlay: false,
+		attributes: {},
+	},
 };

@@ -2,16 +2,19 @@ import type { ModelViewerElement } from "@google/model-viewer";
 import { kebabCase } from "change-case";
 import { MarkdownRenderChild } from "obsidian";
 import { ModelViewerOverlay } from "./ModelViewerOverlay";
-import type { ModelViewerSettings } from "./settings";
+
+export interface ModelViewerComponentOptions {
+	enableOverlay?: boolean;
+	aspectRatio?: string | null;
+	maxHeight?: number | null;
+	height?: number | null;
+	attributes?: Record<string, unknown>;
+}
 
 export class ModelViewerComponent extends MarkdownRenderChild {
 	viewerEl: ModelViewerElement;
 
-	constructor(
-		containerEl: HTMLElement,
-		settings: ModelViewerSettings,
-		attributes: Record<string, unknown> = {}
-	) {
+	constructor(containerEl: HTMLElement, options: ModelViewerComponentOptions = {}) {
 		super(containerEl);
 
 		this.viewerEl = document.createElement("model-viewer");
@@ -26,37 +29,27 @@ export class ModelViewerComponent extends MarkdownRenderChild {
 			{ passive: false }
 		);
 
-		if (settings.cameraControls) this.viewerEl.setAttribute("camera-controls", "");
-		if (settings.disablePan) this.viewerEl.setAttribute("disable-pan", "");
-		if (settings.disableZoom) this.viewerEl.setAttribute("disable-zoom", "");
-		if (settings.autoRotate) this.viewerEl.setAttribute("auto-rotate", "");
-		if (!settings.interactionPrompt) this.viewerEl.setAttribute("interaction-prompt", "none");
-		if (settings.autoplay) this.viewerEl.setAttribute("autoplay", "");
-
-		attributes = { ...attributes };
-
-		if (attributes["overlay"] != null) {
+		if (options.enableOverlay) {
 			this.addChild(new ModelViewerOverlay(containerEl, this.viewerEl));
-			delete attributes["overlay"];
 		}
 
-		if (attributes["height"]) {
-			this.viewerEl.style.height = attributes["height"] + "px";
-			this.viewerEl.style.maxHeight = "unset";
-			delete attributes["height"];
+		if (options.aspectRatio) {
+			this.viewerEl.style.aspectRatio = String(options.aspectRatio).replace(":", "/");
 		}
 
-		if (attributes["aspect"]) {
-			this.viewerEl.style.aspectRatio = String(attributes["aspect"]).replace(":", "/");
-			this.viewerEl.style.maxHeight = "unset";
-			delete attributes["aspect"];
+		if (options.maxHeight) {
+			this.viewerEl.style.maxHeight = options.maxHeight + "px";
 		}
 
-		for (const key in attributes) {
-			if (attributes[key] == "false") {
+		if (options.height) {
+			this.viewerEl.style.height = options.height + "px";
+		}
+
+		for (const key in options.attributes) {
+			if (options.attributes[key] == "false") {
 				this.viewerEl.removeAttribute(kebabCase(key));
 			} else {
-				this.viewerEl.setAttribute(kebabCase(key), String(attributes[key]));
+				this.viewerEl.setAttribute(kebabCase(key), String(options.attributes[key]));
 			}
 		}
 	}
