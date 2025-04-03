@@ -6,9 +6,8 @@ export class ModelViewerPlayButton extends ButtonComponent {
 
 	constructor(containerEl: HTMLElement, viewer: ModelViewerElement) {
 		super(containerEl);
+		this.buttonEl.addClass("model-viewer-play-button");
 		this.viewer = viewer;
-		this.buttonEl.style.aspectRatio = "1";
-		this.buttonEl.style.paddingInline = "0";
 		this.setCta();
 		this.updateIcon();
 		this.onClick(() => {

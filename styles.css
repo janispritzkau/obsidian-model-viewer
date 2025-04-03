@@ -1,9 +1,13 @@
 .model-viewer-embed {
 	position: relative;
-	display: inline-block;
 	border-radius: var(--radius-m);
 	background-color: var(--background-primary-alt);
 	max-width: 100%;
+}
+
+.internal-embed.model-viewer-embed {
+	display: inline-block;
+	width: 100%;
 }
 
 .model-viewer-embed model-viewer {
@@ -25,4 +29,16 @@
 	z-index: 1;
 	display: flex;
 	gap: var(--size-4-2);
+}
+
+[data-type="model-viewer-file-view"] model-viewer {
+	position: absolute;
+	inset: 0;
+	width: auto;
+	height: auto;
+}
+
+.model-viewer-play-button {
+	aspect-ratio: 1;
+	padding-inline: 0;
 }

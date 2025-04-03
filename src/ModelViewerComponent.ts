@@ -1,5 +1,4 @@
 import type { ModelViewerElement } from "@google/model-viewer";
-import { kebabCase } from "change-case";
 import { MarkdownRenderChild } from "obsidian";
 import { ModelViewerOverlay } from "./ModelViewerOverlay";
 
@@ -43,6 +42,7 @@ export class ModelViewerComponent extends MarkdownRenderChild {
 
 		if (options.height) {
 			this.viewerEl.style.height = options.height + "px";
+			this.viewerEl.style.maxHeight = "";
 		}
 
 		for (const key in options.attributes) {

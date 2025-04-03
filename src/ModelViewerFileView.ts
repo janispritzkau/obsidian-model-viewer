@@ -21,9 +21,6 @@ export class ModelViewerFileView extends FileView {
 		this.viewerEl = this.viewer.viewerEl;
 		this.viewerEl.fieldOfView = "50deg";
 		this.viewerEl.maxFieldOfView = "75deg";
-		this.viewerEl.style.position = "absolute";
-		this.viewerEl.style.width = "100%";
-		this.viewerEl.style.height = "100%";
 	}
 
 	getViewType(): string {
