@@ -17,8 +17,8 @@ export interface ModelViewerSettings {
 export const DEFAULT_SETTINGS: ModelViewerSettings = {
 	modelViewer: {
 		attributes: {
-			cameraControls: "true",
-			autoRotate: "true",
+			"camera-controls": "true",
+			"auto-rotate": "true",
 		},
 	},
 	fileView: {
@@ -32,3 +32,13 @@ export const DEFAULT_SETTINGS: ModelViewerSettings = {
 		attributes: {},
 	},
 };
+
+export function stringifyAttributes(attributes: Record<string, string>) {
+	const params = new URLSearchParams(Object.entries(attributes));
+	return params.toString();
+}
+
+export function parseAttributes(value: string) {
+	const params = new URLSearchParams(value);
+	return Object.fromEntries(params.entries());
+}

@@ -47,9 +47,9 @@ export class ModelViewerComponent extends MarkdownRenderChild {
 
 		for (const key in options.attributes) {
 			if (options.attributes[key] == "false") {
-				this.viewerEl.removeAttribute(kebabCase(key));
+				this.viewerEl.removeAttribute(key);
 			} else {
-				this.viewerEl.setAttribute(kebabCase(key), String(options.attributes[key]));
+				this.viewerEl.setAttribute(key, String(options.attributes[key]));
 			}
 		}
 	}

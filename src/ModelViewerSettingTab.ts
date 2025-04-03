@@ -1,6 +1,6 @@
-import { kebabCase } from "change-case";
 import { App, PluginSettingTab, Setting } from "obsidian";
 import type ModelViewerPlugin from "./main";
+import { parseAttributes, stringifyAttributes } from "./settings";
 
 export class ModelViewerSettingTab extends PluginSettingTab {
 	plugin: ModelViewerPlugin;
@@ -17,25 +17,29 @@ export class ModelViewerSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl).setHeading().setName("Model viewer");
 
-		new Setting(containerEl)
-			.setName("Attributes")
-			.setDesc("URL-formatted attributes for the model viewer")
-			.addText((text) => {
-				const searchParams = new URLSearchParams(
-					Object.entries(this.plugin.settings.modelViewer.attributes).map(
-						([key, value]) => [kebabCase(key), value]
-					)
-				);
-				text.inputEl.style.minWidth = "300px";
-				text.setValue(searchParams.toString());
-				text.onChange(async (value) => {
-					const params = new URLSearchParams(value);
-					this.plugin.settings.modelViewer.attributes = Object.fromEntries(
-						params.entries()
-					);
-					await this.plugin.saveSettings();
-				});
+		const attributesDesc = () => {
+			const fragment = document.createDocumentFragment();
+			fragment.appendText("URL-formatted string of attributes for the model viewer (see ");
+			fragment.createEl("a", {
+				href: "https://modelviewer.dev/docs/index.html",
+				text: "modelviewer.dev/docs/",
 			});
+			fragment.appendText(")");
+			return fragment;
+		};
+
+		// not very user friendly right now, but this is a good start
+		new Setting(containerEl)
+			.setName("Attributes (experimental)")
+			.setDesc(attributesDesc())
+			.addText((text) =>
+				text
+					.setValue(stringifyAttributes(this.plugin.settings.modelViewer.attributes))
+					.onChange(async (value) => {
+						this.plugin.settings.modelViewer.attributes = parseAttributes(value);
+						await this.plugin.saveSettings();
+					})
+			);
 
 		new Setting(containerEl).setHeading().setName("File fiew");
 
@@ -51,20 +55,12 @@ export class ModelViewerSettingTab extends PluginSettingTab {
 			});
 
 		new Setting(containerEl)
-			.setName("Attributes")
-			.setDesc("URL-formatted attributes for the model viewer")
+			.setName("Attributes (experimental)")
+			.setDesc(attributesDesc())
 			.addText((text) => {
-				const searchParams = new URLSearchParams(
-					Object.entries(this.plugin.settings.fileView.attributes).map(([key, value]) => [
-						kebabCase(key),
-						value,
-					])
-				);
-				text.inputEl.style.minWidth = "300px";
-				text.setValue(searchParams.toString());
+				text.setValue(stringifyAttributes(this.plugin.settings.fileView.attributes));
 				text.onChange(async (value) => {
-					const params = new URLSearchParams(value);
-					this.plugin.settings.fileView.attributes = Object.fromEntries(params.entries());
+					this.plugin.settings.fileView.attributes = parseAttributes(value);
 					await this.plugin.saveSettings();
 				});
 			});
@@ -105,20 +101,12 @@ export class ModelViewerSettingTab extends PluginSettingTab {
 			});
 
 		new Setting(containerEl)
-			.setName("Attributes")
-			.setDesc("URL-formatted attributes for the model viewer")
+			.setName("Attributes (experimental)")
+			.setDesc(attributesDesc())
 			.addText((text) => {
-				const searchParams = new URLSearchParams(
-					Object.entries(this.plugin.settings.embed.attributes).map(([key, value]) => [
-						kebabCase(key),
-						value,
-					])
-				);
-				text.inputEl.style.minWidth = "300px";
-				text.setValue(searchParams.toString());
+				text.setValue(stringifyAttributes(this.plugin.settings.embed.attributes));
 				text.onChange(async (value) => {
-					const params = new URLSearchParams(value);
-					this.plugin.settings.embed.attributes = Object.fromEntries(params.entries());
+					this.plugin.settings.embed.attributes = parseAttributes(value);
 					await this.plugin.saveSettings();
 				});
 			});
