@@ -31,6 +31,10 @@
 	gap: var(--size-4-2);
 }
 
+[data-type="model-viewer-file-view"] .view-content {
+	position: relative;
+}
+
 [data-type="model-viewer-file-view"] model-viewer {
 	position: absolute;
 	inset: 0;
