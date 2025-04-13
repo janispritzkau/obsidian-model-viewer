@@ -49,6 +49,15 @@ export class ModelViewerEmbed extends Component {
 		this.viewer = this.addChild(new ModelViewerComponent(containerEl, options));
 
 		this.viewerEl = this.viewer.viewerEl;
+
+		this.registerEvent(
+			this.app.workspace.on("active-leaf-change", () => {
+				// fixes bug with the model not loading when the model viewer element is reattached to the DOM
+				const src = this.app.vault.getResourcePath(this.file);
+				this.viewerEl.src = "";
+				this.viewerEl.src = src;
+			})
+		);
 	}
 
 	onload(): void {
