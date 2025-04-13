@@ -18,7 +18,7 @@ export const DEFAULT_SETTINGS: ModelViewerSettings = {
 	modelViewer: {
 		attributes: {
 			"camera-controls": "true",
-			"auto-rotate": "true",
+			"interaction-prompt": "none",
 		},
 	},
 	fileView: {
@@ -27,7 +27,7 @@ export const DEFAULT_SETTINGS: ModelViewerSettings = {
 	},
 	embed: {
 		aspectRatio: "1:1",
-		maxHeight: 300,
+		maxHeight: 600,
 		enableOverlay: false,
 		attributes: {},
 	},
