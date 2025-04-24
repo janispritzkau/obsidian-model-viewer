@@ -1,17 +1,32 @@
-import { Plugin, type TFile } from "obsidian";
+import { normalizePath, Plugin, type TFile } from "obsidian";
+import extractLibs from "./extract_libs";
 import { ModelViewerEmbed } from "./ModelViewerEmbed";
 import { ModelViewerFileView } from "./ModelViewerFileView";
 import { ModelViewerSettingTab } from "./ModelViewerSettingTab";
 import { DEFAULT_SETTINGS, type ModelViewerSettings } from "./settings";
 
-if (customElements.get("model-viewer") == null) {
-	import("@google/model-viewer");
-}
-
 export default class ModelViewerPlugin extends Plugin {
 	settings: ModelViewerSettings = DEFAULT_SETTINGS;
 
 	async onload() {
+		const pluginDir = normalizePath(this.app.vault.configDir + "/plugins/" + this.manifest.id);
+		await extractLibs(this.app, pluginDir);
+
+		if (customElements.get("model-viewer") == null) {
+			await import("@google/model-viewer");
+		}
+
+		const url = new URL(this.app.vault.adapter.getResourcePath(pluginDir));
+		url.search = "";
+
+		Object.assign(globalThis, {
+			ModelViewerElement: {
+				dracoDecoderLocation: url.href + "/lib/draco/",
+				ktx2TranscoderLocation: url.href + "/lib/basis/",
+				meshoptDecoderLocation: url.href + "/lib/meshopt_decoder.js",
+			},
+		});
+
 		await this.loadSettings();
 
 		this.addSettingTab(new ModelViewerSettingTab(this.app, this));
