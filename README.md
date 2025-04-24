@@ -14,11 +14,11 @@ This plugin allows you to view and embed interactive 3D models directly in your 
 - Supports most of the features of the \<model-viewer\> component
 - Obsidian-style embed syntax with custom attributes
 
-### Model File Viewer
+### File View
 
 Using this plugin, Obsidian automatically recognizes the .glb and .gltf files in your vault, allowing you to browse them and open them in a tab.
 
-### Model Hover Preview
+### Hover Preview
 
 When combined with Obsidian's page preview plugin (enabled by default), you can view 3D models using the hover preview.
 
