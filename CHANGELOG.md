@@ -1,3 +1,17 @@
+## [1.0.4](https://github.com/janispritzkau/obsidian-model-viewer/compare/1.0.3...1.0.4) (2025-04-24)
+
+
+### Bug Fixes
+
+* update copyright year and author in license ([4b0e6a6](https://github.com/janispritzkau/obsidian-model-viewer/commit/4b0e6a61a7cdd3c592c6cd78cd7d66bf0c87cee1))
+
+
+### Features
+
+* offline support for models using draco, meshopt and ktx extension ([a7470ed](https://github.com/janispritzkau/obsidian-model-viewer/commit/a7470ed43e609cd9f98eb815c74a72f91edbc5d2)), closes [#2](https://github.com/janispritzkau/obsidian-model-viewer/issues/2)
+
+
+
 ## [1.0.3](https://github.com/janispritzkau/obsidian-model-viewer/compare/1.0.2...1.0.3) (2025-04-13)
 
 
