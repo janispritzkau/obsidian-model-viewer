@@ -1,5 +1,4 @@
-import { Plugin, type TFile } from "obsidian";
-import { join } from "path";
+import { normalizePath, Plugin, type TFile } from "obsidian";
 import initializeLibs from "./_extract_libs";
 import { ModelViewerEmbed } from "./ModelViewerEmbed";
 import { ModelViewerFileView } from "./ModelViewerFileView";
@@ -10,7 +9,7 @@ export default class ModelViewerPlugin extends Plugin {
 	settings: ModelViewerSettings = DEFAULT_SETTINGS;
 
 	async onload() {
-		const pluginDir = join(this.app.vault.configDir, "plugins", this.manifest.id);
+		const pluginDir = normalizePath(this.app.vault.configDir + "/plugins/" + this.manifest.id);
 		await initializeLibs(this.app, pluginDir);
 
 		if (customElements.get("model-viewer") == null) {
