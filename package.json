@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-model-viewer",
-	"version": "1.0.3",
+	"version": "1.0.4",
 	"description": "An Obsidian plugin to view and embed 3D models using Google’s <model-viewer> component.",
 	"main": "main.js",
 	"scripts": {
@@ -11,7 +11,7 @@
 	},
 	"keywords": [],
 	"author": "",
-	"license": "MIT",
+	"license": "0BSD",
 	"devDependencies": {
 		"@types/node": "^16.11.6",
 		"@typescript-eslint/eslint-plugin": "5.29.0",
