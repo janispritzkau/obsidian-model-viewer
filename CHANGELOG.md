@@ -1,3 +1,12 @@
+## [1.0.5](https://github.com/janispritzkau/obsidian-model-viewer/compare/1.0.4...1.0.5) (2025-04-24)
+
+
+### Features
+
+* add command to copy embed for current file view (fix [#8](https://github.com/janispritzkau/obsidian-model-viewer/issues/8)) ([df339e0](https://github.com/janispritzkau/obsidian-model-viewer/commit/df339e03cc45e45daf9bf9a42ef66a625ebe50a9))
+
+
+
 ## [1.0.4](https://github.com/janispritzkau/obsidian-model-viewer/compare/1.0.3...1.0.4) (2025-04-24)
 
 

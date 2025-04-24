@@ -1,7 +1,7 @@
 {
 	"id": "model-viewer",
 	"name": "Model Viewer",
-	"version": "1.0.4",
+	"version": "1.0.5",
 	"minAppVersion": "1.7.6",
 	"description": "View and embed interactive 3D models directly in your vault, powered by Google's <model-viewer> component. Supports the glTF and GLB file formats.",
 	"author": "Janis Pritzkau",
