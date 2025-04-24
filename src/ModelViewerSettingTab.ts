@@ -15,8 +15,6 @@ export class ModelViewerSettingTab extends PluginSettingTab {
 
 		containerEl.empty();
 
-		new Setting(containerEl).setHeading().setName("Model viewer");
-
 		const attributesDesc = () => {
 			const fragment = document.createDocumentFragment();
 			fragment.appendText("URL-formatted string of attributes for the model viewer (see ");
@@ -41,7 +39,7 @@ export class ModelViewerSettingTab extends PluginSettingTab {
 					})
 			);
 
-		new Setting(containerEl).setHeading().setName("File fiew");
+		new Setting(containerEl).setHeading().setName("File view");
 
 		new Setting(containerEl)
 			.setName("Enable overlay")
