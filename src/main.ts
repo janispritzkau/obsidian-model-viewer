@@ -1,23 +1,23 @@
 import { Plugin, type TFile } from "obsidian";
+import { join } from "path";
+import initializeLibs from "./_extract_libs";
 import { ModelViewerEmbed } from "./ModelViewerEmbed";
 import { ModelViewerFileView } from "./ModelViewerFileView";
 import { ModelViewerSettingTab } from "./ModelViewerSettingTab";
 import { DEFAULT_SETTINGS, type ModelViewerSettings } from "./settings";
-import { join } from "path";
 
 export default class ModelViewerPlugin extends Plugin {
 	settings: ModelViewerSettings = DEFAULT_SETTINGS;
 
 	async onload() {
+		const pluginDir = join(this.app.vault.configDir, "plugins", this.manifest.id);
+		await initializeLibs(this.app, pluginDir);
+
 		if (customElements.get("model-viewer") == null) {
 			await import("@google/model-viewer");
 		}
 
-		const url = new URL(
-			this.app.vault.adapter.getResourcePath(
-				join(this.app.vault.configDir, "plugins", this.manifest.id)
-			)
-		);
+		const url = new URL(this.app.vault.adapter.getResourcePath(pluginDir));
 		url.search = "";
 
 		Object.assign(globalThis, {
