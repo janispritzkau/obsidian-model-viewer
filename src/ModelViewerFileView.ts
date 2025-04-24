@@ -5,7 +5,7 @@ import type { ModelViewerSettings } from "./settings";
 
 export class ModelViewerFileView extends FileView {
 	private viewer: ModelViewerComponent;
-	private viewerEl: ModelViewerElement;
+	viewerEl: ModelViewerElement;
 
 	constructor(leaf: WorkspaceLeaf, settings: ModelViewerSettings) {
 		super(leaf);

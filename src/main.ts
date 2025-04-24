@@ -1,4 +1,4 @@
-import { normalizePath, Plugin, type TFile } from "obsidian";
+import { normalizePath, Notice, Plugin, type TFile } from "obsidian";
 import extractLibs from "./extract_libs";
 import { ModelViewerEmbed } from "./ModelViewerEmbed";
 import { ModelViewerFileView } from "./ModelViewerFileView";
@@ -60,6 +60,35 @@ export default class ModelViewerPlugin extends Plugin {
 				);
 			}
 		);
+
+		this.addCommand({
+			id: "copy-embed-with-current-view",
+			name: "Copy embed with current view",
+			checkCallback: (checking) => {
+				const activeView = this.app.workspace.getActiveViewOfType(ModelViewerFileView);
+				if (activeView?.file != null) {
+					if (checking) return true;
+					const modelViewer = activeView.viewerEl;
+					const orbit = modelViewer.getCameraOrbit();
+					const target = modelViewer.getCameraTarget();
+					const fieldOfView = modelViewer.getFieldOfView();
+					const embedLink = this.app.fileManager.generateMarkdownLink(
+						activeView.file,
+						"",
+						"#" +
+							new URLSearchParams({
+								"camera-orbit": orbit.toString(),
+								"camera-target": target.toString(),
+								"field-of-view": fieldOfView.toString() + "deg",
+							}).toString()
+					);
+					navigator.clipboard.writeText(embedLink).then(() => {
+						new Notice("Copied to your clipboard");
+					});
+				}
+				return false;
+			},
+		});
 	}
 
 	onunload() {
