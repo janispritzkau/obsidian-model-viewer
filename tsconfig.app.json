@@ -1,0 +1,22 @@
+{
+	"include": ["env.d.ts", "src/**/*"],
+	"exclude": ["node_modules"],
+	"compilerOptions": {
+		"composite": true,
+		"tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+
+		"noEmit": true,
+		"module": "ESNext",
+		"moduleResolution": "Bundler",
+		"resolveJsonModule": true,
+		"allowImportingTsExtensions": true,
+		"moduleDetection": "force",
+		"noImplicitThis": true,
+		"strict": true,
+		"verbatimModuleSyntax": true,
+
+		"target": "ESNext",
+		"lib": ["ES2023", "DOM", "DOM.Iterable"],
+		"baseUrl": "."
+	}
+}

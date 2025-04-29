@@ -1,4 +1,4 @@
-import { App, PluginSettingTab, Setting } from "obsidian";
+import { type App, PluginSettingTab, Setting } from "obsidian";
 import type ModelViewerPlugin from "./main";
 import { parseAttributes, stringifyAttributes } from "./settings";
 
