@@ -4,6 +4,7 @@ import { ModelViewerEmbed } from "./ModelViewerEmbed";
 import { ModelViewerFileView } from "./ModelViewerFileView";
 import { ModelViewerSettingTab } from "./ModelViewerSettingTab";
 import { DEFAULT_SETTINGS, type ModelViewerSettings } from "./settings";
+import { CONVERTIBLE_EXTENSIONS } from "./convertToGlb";
 
 export default class ModelViewerPlugin extends Plugin {
 	settings: ModelViewerSettings = DEFAULT_SETTINGS;
@@ -35,11 +36,11 @@ export default class ModelViewerPlugin extends Plugin {
 			return new ModelViewerFileView(leaf, this.settings);
 		});
 
-		this.registerExtensions(["glb", "gltf"], "model-viewer-file-view");
+		this.registerExtensions(["glb", "gltf", ...CONVERTIBLE_EXTENSIONS], "model-viewer-file-view");
 
 		// @ts-expect-error
 		this.app.embedRegistry.registerExtensions(
-			["gltf", "glb"],
+			["gltf", "glb", ...CONVERTIBLE_EXTENSIONS],
 			(
 				context: { containerEl: HTMLElement; linktext?: string; showInline?: boolean },
 				file: TFile
@@ -93,7 +94,7 @@ export default class ModelViewerPlugin extends Plugin {
 
 	onunload() {
 		// @ts-expect-error
-		this.app.embedRegistry.unregisterExtensions(["gltf", "glb"]);
+		this.app.embedRegistry.unregisterExtensions(["gltf", "glb", ...CONVERTIBLE_EXTENSIONS]);
 	}
 
 	async loadSettings() {
