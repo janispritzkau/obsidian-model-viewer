@@ -4,19 +4,43 @@ This plugin allows you to view and embed interactive 3D models directly in your 
 
 ![Screenshot](screenshot.avif)
 
-> \<model-viewer\> supports and plans to support only glTF/GLB 3D models. It is the Khronos standard known as the JPEG of 3D and the first format to standardize Physically-Based Rendering (PBR), making your models look realistic under any lighting, on any renderer. It is also compact, compressible, and loads rapidly into the GPU.
+## Installation
 
-[\<model-viewer\> FAQ](https://modelviewer.dev/docs/faq.html)
+### From the Obsidian Community Plugins
+
+1. Open Obsidian and go to **Settings → Community plugins**
+2. Disable **Safe mode** if prompted
+3. Click **Browse** and search for **Model Viewer**
+4. Click **Install**, then **Enable**
+
+### Manual installation
+
+1. Download `main.js`, `manifest.json` and `styles.css` from the [latest release](https://github.com/janispritzkau/obsidian-model-viewer/releases/latest)
+2. Create the folder `<your-vault>/.obsidian/plugins/model-viewer/`
+3. Copy the downloaded files into that folder
+4. In Obsidian, go to **Settings → Community plugins** and enable **Model Viewer**
 
 ## Features
 
-- .glb and .gltf file support with most popular glTF extensions (including Draco compression, KTX2 textures and PBR materials)
+- .glb, .gltf, .stl and .3mf file support
+- glTF extensions support: Draco compression, KTX2 textures, PBR materials and more
 - Supports most of the features of the \<model-viewer\> component
 - Obsidian-style embed syntax with custom attributes
 
+### Supported formats
+
+| Format | Extension | Notes |
+|--------|-----------|-------|
+| GL Transmission Format Binary | `.glb` | Native support |
+| GL Transmission Format | `.gltf` | Native support |
+| Stereolithography | `.stl` | Converted to GLB automatically |
+| 3D Manufacturing Format | `.3mf` | Converted to GLB automatically |
+
+STL and 3MF files are automatically converted to GLB in memory before being displayed. The original file in your vault is never modified.
+
 ### File View
 
-Using this plugin, Obsidian automatically recognizes the .glb and .gltf files in your vault, allowing you to browse them and open them in a tab.
+Using this plugin, Obsidian automatically recognizes .glb, .gltf, .stl and .3mf files in your vault, allowing you to browse them and open them in a tab.
 
 ### Hover Preview
 
@@ -30,6 +54,13 @@ The simplest embed looks like this:
 
 ```markdown
 ![[DamagedHelmet.glb]]
+```
+
+STL and 3MF files work the same way:
+
+```markdown
+![[part.stl]]
+![[assembly.3mf]]
 ```
 
 If you want to specify the height of the model, you can do so like this:

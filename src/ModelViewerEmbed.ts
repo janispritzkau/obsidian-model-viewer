@@ -2,11 +2,13 @@ import type { ModelViewerElement } from "@google/model-viewer";
 import { Component, type App, type TFile } from "obsidian";
 import { ModelViewerComponent, type ModelViewerComponentOptions } from "./ModelViewerComponent";
 import type { ModelViewerSettings } from "./settings";
+import { convertToGlb, CONVERTIBLE_EXTENSIONS } from "./convertToGlb";
 
 export class ModelViewerEmbed extends Component {
 	private viewer: ModelViewerComponent;
 	private viewerEl: ModelViewerElement;
 	private observer: MutationObserver;
+	private blobUrl: string | null = null;
 
 	constructor(
 		private app: App,
@@ -51,11 +53,8 @@ export class ModelViewerEmbed extends Component {
 		this.viewerEl = this.viewer.viewerEl;
 
 		this.registerEvent(
-			this.app.workspace.on("active-leaf-change", () => {
-				// fixes bug with the model not loading when the model viewer element is reattached to the DOM
-				const src = this.app.vault.getResourcePath(this.file);
-				this.viewerEl.src = "";
-				this.viewerEl.src = src;
+			this.app.workspace.on("active-leaf-change", async () => {
+				await this.loadFile();
 			})
 		);
 	}
@@ -65,14 +64,31 @@ export class ModelViewerEmbed extends Component {
 			attributes: true,
 			attributeFilter: ["width"],
 		});
+		void this.loadFile();
 	}
 
 	onunload(): void {
 		this.observer.disconnect();
+		if (this.blobUrl) {
+			URL.revokeObjectURL(this.blobUrl);
+			this.blobUrl = null;
+		}
 	}
 
-	loadFile() {
-		this.viewerEl.src = this.app.vault.getResourcePath(this.file);
+	async loadFile(): Promise<void> {
+		if (CONVERTIBLE_EXTENSIONS.includes(this.file.extension)) {
+			// Reuse cached blob URL – only re-convert if not yet available
+			if (!this.blobUrl) {
+				const arrayBuffer = await this.app.vault.readBinary(this.file);
+				this.blobUrl = await convertToGlb(arrayBuffer, this.file.extension);
+			}
+			this.viewerEl.src = this.blobUrl;
+		} else {
+			// fixes bug with the model not loading when the model viewer element is reattached to the DOM
+			const src = this.app.vault.getResourcePath(this.file);
+			this.viewerEl.src = "";
+			this.viewerEl.src = src;
+		}
 	}
 
 	private updateWidth() {
