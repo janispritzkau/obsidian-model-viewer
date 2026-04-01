@@ -27,6 +27,7 @@ export class ModelViewerEmbed extends Component {
 			enableOverlay: settings.embed.enableOverlay,
 			aspectRatio: settings.embed.aspectRatio,
 			maxHeight: settings.embed.maxHeight,
+			sourcePath: this.file.path,
 			attributes: {
 				...settings.modelViewer.attributes,
 				...settings.embed.attributes,
@@ -46,7 +47,7 @@ export class ModelViewerEmbed extends Component {
 			options.height = parseInt(height);
 		}
 
-		this.viewer = this.addChild(new ModelViewerComponent(containerEl, options));
+		this.viewer = this.addChild(new ModelViewerComponent(containerEl, options, this.app));
 
 		this.viewerEl = this.viewer.viewerEl;
 

@@ -1,6 +1,13 @@
 import type { ModelViewerElement } from "@google/model-viewer";
-import { MarkdownRenderChild } from "obsidian";
+import { type App, MarkdownRenderChild } from "obsidian";
 import { ModelViewerOverlay } from "./ModelViewerOverlay";
+
+/** Attributes whose values are vault-relative file paths that must be resolved to resource URLs. */
+const PATH_ATTRIBUTES = new Set([
+	"skybox-image",
+	"environment-image",
+	"poster",
+]);
 
 export interface ModelViewerComponentOptions {
 	enableOverlay?: boolean;
@@ -8,12 +15,14 @@ export interface ModelViewerComponentOptions {
 	maxHeight?: number | null;
 	height?: number | null;
 	attributes?: Record<string, unknown>;
+	/** Path of the source file, used to resolve relative link paths the same way Obsidian does. */
+	sourcePath?: string;
 }
 
 export class ModelViewerComponent extends MarkdownRenderChild {
 	viewerEl: ModelViewerElement;
 
-	constructor(containerEl: HTMLElement, options: ModelViewerComponentOptions = {}) {
+	constructor(containerEl: HTMLElement, options: ModelViewerComponentOptions = {}, private app?: App) {
 		super(containerEl);
 
 		this.viewerEl = document.createElement("model-viewer");
@@ -45,12 +54,30 @@ export class ModelViewerComponent extends MarkdownRenderChild {
 			this.viewerEl.style.maxHeight = "";
 		}
 
+		const sourcePath = options.sourcePath ?? "";
 		for (const key in options.attributes) {
-			if (options.attributes[key] == "false") {
+			const raw = options.attributes[key];
+			if (raw == "false") {
 				this.viewerEl.removeAttribute(key);
 			} else {
-				this.viewerEl.setAttribute(key, String(options.attributes[key]));
+				const value = this.resolveAttributeValue(key, String(raw), sourcePath);
+				this.viewerEl.setAttribute(key, value);
 			}
 		}
+	}
+
+	/**
+	 * For attributes that expect a URL pointing to a file inside the vault,
+	 * resolve using the same logic as Obsidian wikilinks: getFirstLinkpathDest
+	 * matches by name or partial path relative to the source file.
+	 * All other attribute values are returned unchanged.
+	 */
+	private resolveAttributeValue(key: string, value: string, sourcePath: string): string {
+		if (!PATH_ATTRIBUTES.has(key) || !this.app) return value;
+		// Skip values that are already absolute URLs (http/https/app/data schemes)
+		if (/^[a-z][a-z\d+\-.]*:/i.test(value)) return value;
+		const file = this.app.metadataCache.getFirstLinkpathDest(value, sourcePath);
+		if (file) return this.app.vault.getResourcePath(file);
+		return value;
 	}
 }

@@ -16,7 +16,7 @@ export class ModelViewerFileView extends FileView {
 					...settings.modelViewer.attributes,
 					...settings.fileView.attributes,
 				},
-			})
+			}, this.app)
 		);
 		this.viewerEl = this.viewer.viewerEl;
 		this.viewerEl.fieldOfView = "50deg";
