@@ -1,5 +1,5 @@
 import { normalizePath, Notice, Plugin, type TFile } from "obsidian";
-import extractLibs from "./extract_libs";
+import extractLibs from "virtual:extract-libs";
 import { ModelViewerEmbed } from "./ModelViewerEmbed";
 import { ModelViewerFileView } from "./ModelViewerFileView";
 import { ModelViewerSettingTab } from "./ModelViewerSettingTab";
