@@ -6,6 +6,7 @@
 	"scripts": {
 		"dev": "vite build --watch --mode development",
 		"build": "npm run typecheck && vite build",
+		"example-vault": "npm run build && node scripts/setup-example-vault.mjs",
 		"test:e2e": "npm run build && node --test tests/e2e/plugin.test.mjs",
 		"version": "node version-bump.mjs && npm run changelog && git add manifest.json versions.json CHANGELOG.md",
 		"changelog": "conventional-changelog -p angular -i CHANGELOG.md",
