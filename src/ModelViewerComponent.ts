@@ -77,7 +77,9 @@ export class ModelViewerComponent extends MarkdownRenderChild {
 		// Skip values that are already absolute URLs (http/https/app/data schemes)
 		if (/^[a-z][a-z\d+\-.]*:/i.test(value)) return value;
 		const file = this.app.metadataCache.getFirstLinkpathDest(value, sourcePath);
-		if (file) return this.app.vault.getResourcePath(file);
-		return value;
+		if (file == null) return value;
+		const url = this.app.vault.getResourcePath(file);
+		// model-viewer detects HDR images by the end of the URL, which excludes query strings
+		return file.extension == "hdr" ? url.split("?")[0] : url;
 	}
 }
