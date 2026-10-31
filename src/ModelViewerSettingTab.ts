@@ -1,6 +1,7 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
 import type ModelViewerPlugin from "./main";
-import { parseAttributes, stringifyAttributes } from "./settings";
+import type { AttributeScope } from "./attributes";
+import { AttributesModal } from "./AttributesModal";
 
 export class ModelViewerSettingTab extends PluginSettingTab {
 	plugin: ModelViewerPlugin;
@@ -15,30 +16,10 @@ export class ModelViewerSettingTab extends PluginSettingTab {
 
 		containerEl.empty();
 
-		const attributesDesc = () =>
-			createFragment((fragment) => {
-				fragment.appendText(
-					"URL-formatted string of attributes for the model viewer (see "
-				);
-				fragment.createEl("a", {
-					href: "https://modelviewer.dev/docs/index.html",
-					text: "modelviewer.dev/docs/",
-				});
-				fragment.appendText(")");
-			});
-
-		// not very user friendly right now, but this is a good start
-		new Setting(containerEl)
-			.setName("Attributes (experimental)")
-			.setDesc(attributesDesc())
-			.addText((text) =>
-				text
-					.setValue(stringifyAttributes(this.plugin.settings.modelViewer.attributes))
-					.onChange(async (value) => {
-						this.plugin.settings.modelViewer.attributes = parseAttributes(value);
-						await this.plugin.saveSettings();
-					})
-			);
+		this.addAttributesSetting("Default attributes", "defaults", "Applied to every model", {
+			get: () => this.plugin.settings.modelViewer.attributes,
+			set: (value) => (this.plugin.settings.modelViewer.attributes = value),
+		});
 
 		new Setting(containerEl).setHeading().setName("File view");
 
@@ -53,16 +34,10 @@ export class ModelViewerSettingTab extends PluginSettingTab {
 				});
 			});
 
-		new Setting(containerEl)
-			.setName("Attributes (experimental)")
-			.setDesc(attributesDesc())
-			.addText((text) => {
-				text.setValue(stringifyAttributes(this.plugin.settings.fileView.attributes));
-				text.onChange(async (value) => {
-					this.plugin.settings.fileView.attributes = parseAttributes(value);
-					await this.plugin.saveSettings();
-				});
-			});
+		this.addAttributesSetting("Attributes", "fileView", "Override the defaults in the file view", {
+			get: () => this.plugin.settings.fileView.attributes,
+			set: (value) => (this.plugin.settings.fileView.attributes = value),
+		});
 
 		new Setting(containerEl).setHeading().setName("Embed");
 
@@ -99,14 +74,36 @@ export class ModelViewerSettingTab extends PluginSettingTab {
 				});
 			});
 
-		new Setting(containerEl)
-			.setName("Attributes (experimental)")
-			.setDesc(attributesDesc())
-			.addText((text) => {
-				text.setValue(stringifyAttributes(this.plugin.settings.embed.attributes));
-				text.onChange(async (value) => {
-					this.plugin.settings.embed.attributes = parseAttributes(value);
-					await this.plugin.saveSettings();
+		this.addAttributesSetting("Attributes", "embed", "Override the defaults in embeds", {
+			get: () => this.plugin.settings.embed.attributes,
+			set: (value) => (this.plugin.settings.embed.attributes = value),
+		});
+	}
+
+	private addAttributesSetting(
+		name: string,
+		scope: AttributeScope,
+		desc: string,
+		attributes: {
+			get: () => Record<string, string>;
+			set: (value: Record<string, string>) => void;
+		}
+	) {
+		const summary = () => {
+			const names = Object.keys(attributes.get());
+			return `${desc}. ${names.length > 0 ? `Set: ${names.join(", ")}` : "None set"}`;
+		};
+
+		const setting = new Setting(this.containerEl)
+			.setName(name)
+			.setDesc(summary())
+			.addButton((button) => {
+				button.setButtonText("Edit").onClick(() => {
+					new AttributesModal(this.app, name, attributes.get(), scope, async (value) => {
+						attributes.set(value);
+						setting.setDesc(summary());
+						await this.plugin.saveSettings();
+					}).open();
 				});
 			});
 	}
