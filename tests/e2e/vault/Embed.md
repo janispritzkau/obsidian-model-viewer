@@ -1,0 +1,3 @@
+# Embed
+
+![[triangle.glb]]
