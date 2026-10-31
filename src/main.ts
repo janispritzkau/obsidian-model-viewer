@@ -1,4 +1,6 @@
 import { normalizePath, Notice, Plugin, type TFile } from "obsidian";
+import { CustomizeEmbedModal } from "./CustomizeEmbedModal";
+import { createEmbedLink } from "./embedLink";
 import extractLibs from "./extract_libs";
 import { ModelViewerEmbed } from "./ModelViewerEmbed";
 import { ModelViewerFileView } from "./ModelViewerFileView";
@@ -68,24 +70,28 @@ export default class ModelViewerPlugin extends Plugin {
 				const activeView = this.app.workspace.getActiveViewOfType(ModelViewerFileView);
 				if (activeView?.file != null) {
 					if (checking) return true;
-					const modelViewer = activeView.viewerEl;
-					const orbit = modelViewer.getCameraOrbit();
-					const target = modelViewer.getCameraTarget();
-					const fieldOfView = modelViewer.getFieldOfView();
-					const link = this.app.fileManager.generateMarkdownLink(
-						activeView.file,
-						"",
-						"#" +
-							new URLSearchParams({
-								"camera-orbit": orbit.toString(),
-								"camera-target": target.toString(),
-								"field-of-view": fieldOfView.toString() + "deg",
-							}).toString()
-					);
-					// generateMarkdownLink only produces a plain link for glb/gltf files
-					navigator.clipboard.writeText("!" + link).then(() => {
+					const link = createEmbedLink(this.app, activeView.file, activeView.viewerEl);
+					navigator.clipboard.writeText(link).then(() => {
 						new Notice("Copied to your clipboard");
 					});
+				}
+				return false;
+			},
+		});
+
+		this.addCommand({
+			id: "customize-embed",
+			name: "Customize embed",
+			checkCallback: (checking) => {
+				const activeView = this.app.workspace.getActiveViewOfType(ModelViewerFileView);
+				if (activeView?.file != null) {
+					if (checking) return true;
+					new CustomizeEmbedModal(
+						this.app,
+						activeView.file,
+						activeView.viewerEl,
+						this.settings
+					).open();
 				}
 				return false;
 			},
