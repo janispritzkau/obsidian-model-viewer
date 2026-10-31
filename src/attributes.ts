@@ -1,5 +1,5 @@
-/** Where attributes are edited. Each scope overrides the one it inherits from. */
-export type AttributeScope = "defaults" | "fileView" | "embed";
+/** Where attributes are edited. Each scope overrides the ones it inherits from. */
+export type AttributeScope = "defaults" | "fileView" | "embed" | "customizeEmbed";
 
 export interface AttributeDefinition {
 	name: string;
@@ -52,7 +52,7 @@ export const ATTRIBUTE_GROUPS: AttributeGroup[] = [
 				description: "Which swipe direction scrolls the note instead of moving the camera",
 				type: "select",
 				options: ["pan-y", "pan-x", "none"],
-				scopes: ["embed"],
+				scopes: ["embed", "customizeEmbed"],
 			},
 		],
 	},
@@ -64,18 +64,24 @@ export const ATTRIBUTE_GROUPS: AttributeGroup[] = [
 				label: "Camera orbit",
 				description: "Starting angle and distance, like 30deg 80deg 100%",
 				type: "text",
+				// set by moving the camera in the customize embed preview
+				scopes: ["defaults", "fileView", "embed"],
 			},
 			{
 				name: "camera-target",
 				label: "Camera target",
 				description: "Point the camera looks at, like 0m 1m 0m",
 				type: "text",
+				// set by moving the camera in the customize embed preview
+				scopes: ["defaults", "fileView", "embed"],
 			},
 			{
 				name: "field-of-view",
 				label: "Field of view",
 				description: "Vertical field of view, like 30deg",
 				type: "text",
+				// set by moving the camera in the customize embed preview
+				scopes: ["defaults", "fileView", "embed"],
 			},
 			{
 				name: "auto-rotate",

@@ -69,3 +69,18 @@
 	width: 15em;
 	max-width: 100%;
 }
+
+.model-viewer-customize-preview,
+.model-viewer-customize-footer {
+	position: sticky;
+	z-index: 1;
+	background: var(--background-primary);
+}
+
+.model-viewer-customize-preview {
+	top: 0;
+}
+
+.model-viewer-customize-footer {
+	bottom: 0;
+}
