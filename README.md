@@ -72,7 +72,7 @@ annotations:
 ```
 ````
 
-The text of an annotation can use Markdown, including links. The [\<model-viewer\> editor](https://modelviewer.dev/editor/) can help you find positions and normals.
+Annotations appear as small rings on the model. Hovering over one shows the first paragraph of its text, and clicking it shows the full text. The text can use Markdown, including links. The [\<model-viewer\> editor](https://modelviewer.dev/editor/) can help you find positions and normals.
 
 #### Using \<model-viewer\> attributes
 
