@@ -56,6 +56,24 @@ You can even place models side by side on a single line:
 ![[A.glb|160]] ![[B.glb|160]] ![[C.glb|160]]
 ```
 
+#### Using code blocks
+
+For more complex embeds, use a `model-viewer` code block. It takes `src` and the same options as an embed, written as YAML. It can also add annotations to the model:
+
+````markdown
+```model-viewer
+src: Thor.glb
+aspect: 16:9
+auto-rotate: true
+annotations:
+  - position: "-0.0569m 0.0969m -0.1398m"
+    normal: "-0.5829775m 0.2863482m -0.7603565m"
+    text: "[[The Fighters]] at sea"
+```
+````
+
+The text of an annotation can use Markdown, including links. The [\<model-viewer\> editor](https://modelviewer.dev/editor/) can help you find positions and normals.
+
 #### Using \<model-viewer\> attributes
 
 You can also use any of the attributes supported by the \<model-viewer\> component. To do this, you can use the following syntax:
