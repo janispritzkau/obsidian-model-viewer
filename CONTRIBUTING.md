@@ -38,14 +38,14 @@ To try the plugin by hand, use a separate test vault and link this repository in
 
 `npm run test:e2e` starts a separate Obsidian window with a temporary profile and a copy of `tests/e2e/vault`, and deletes both afterwards. Your own Obsidian and vaults aren't touched. On macOS the window stays in the background and doesn't take focus, so you can keep working. If Obsidian isn't at the default macOS path, set `OBSIDIAN_BINARY`; a binary started that way opens in front.
 
-Add a test to `tests/e2e/plugin.test.mjs` for any change in behavior. The `page` object can run code inside Obsidian with `evaluate` and `waitFor`, send real input with `drag`, and save a `screenshot`.
+Add a test to `tests/e2e/plugin.test.mjs` for any change in behavior. The `page` object can run code inside Obsidian with `evaluate` and `waitFor`, send real input with `drag` and `swipe`, and save a `screenshot`.
 
 Some behavior of the test setup is easy to trip over:
 
 - **Return plain values from `evaluate`.** Obsidian objects such as `TFile` fail with `Object reference chain is too long`, so use `!!value` or `.then(() => {})`.
 - **Use `activeViewer()` to find the model.** A note in reading mode also has a hidden `<model-viewer>` in its editor, which never loads.
 - **Don't put plugins in the fixture vault.** A vault with plugins at startup shows a trust dialog that blocks all input, so the harness installs the plugin after startup.
-- **Touch and mobile aren't covered.** Check those changes on a real device and say so in the pull request.
+- **Touch tests run on desktop Obsidian.** `swipe` covers the web page and `<model-viewer>`, but not mobile-only behavior such as the sidebar swipe. Check those on a real device and say so in the pull request.
 
 ## Code style
 

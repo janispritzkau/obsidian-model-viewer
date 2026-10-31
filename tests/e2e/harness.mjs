@@ -119,6 +119,24 @@ class Page {
 		await mouse("mouseReleased", to, { clickCount: 1 });
 	}
 
+	/** Swipes with one finger between two points. */
+	async swipe(from, to, steps = 12) {
+		await this.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 1 });
+		const touch = (type, touchPoints) => this.send("Input.dispatchTouchEvent", { type, touchPoints });
+		await touch("touchStart", [from]);
+		for (let step = 1; step <= steps; step++) {
+			await touch("touchMove", [
+				{
+					x: from.x + ((to.x - from.x) * step) / steps,
+					y: from.y + ((to.y - from.y) * step) / steps,
+				},
+			]);
+			await sleep(20);
+		}
+		await touch("touchEnd", []);
+		await this.send("Emulation.setTouchEmulationEnabled", { enabled: false });
+	}
+
 	async screenshot(path) {
 		const { data } = await this.send("Page.captureScreenshot", { format: "png" });
 		await writeFile(path, Buffer.from(data, "base64"));

@@ -130,6 +130,32 @@ test("ignores event handlers and invalid names in embeds", async () => {
 	assert.equal(await page.evaluate(`window.__ran ?? false`), false);
 });
 
+test("swiping over an embed scrolls vertically and rotates horizontally", async () => {
+	const filler = "Filler paragraph.\n\n".repeat(100);
+	await page.evaluate(
+		`app.vault.create("Long.md", ${JSON.stringify(`![[triangle.glb]]\n\n${filler}`)}).then(() => {})`
+	);
+	await openFile("Long.md");
+	await waitForModel();
+
+	const scrollTop = `activeViewer().closest(".markdown-preview-view").scrollTop`;
+	const center = () =>
+		page.evaluate(`(() => {
+			const { x, y, width, height } = activeViewer().getBoundingClientRect();
+			return { x: x + width / 2, y: y + Math.min(height / 2, 300) };
+		})()`);
+
+	const theta = await page.evaluate("activeViewer().getCameraOrbit().theta");
+	let point = await center();
+	await page.swipe(point, { x: point.x + 150, y: point.y });
+	await page.waitFor(`activeViewer().getCameraOrbit().theta !== ${theta}`);
+	assert.equal(await page.evaluate(scrollTop), 0);
+
+	point = await center();
+	await page.swipe(point, { x: point.x, y: point.y - 200 });
+	await page.waitFor(`${scrollTop} > 50`, { timeout: 3000 });
+});
+
 test("logs no errors", () => {
 	assert.deepEqual(page.errors, []);
 });
