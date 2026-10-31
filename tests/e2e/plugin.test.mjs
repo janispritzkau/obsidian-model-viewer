@@ -106,6 +106,60 @@ test("swiping over an embed scrolls vertically and rotates horizontally", async 
 	await page.waitFor(`${scrollTop} > 50`, { timeout: 3000 });
 });
 
+test("edits attributes in the settings and applies them to new embeds", async () => {
+	const settings = `app.plugins.plugins["model-viewer"].settings.embed.attributes`;
+	// Settings have their own window in recent versions of Obsidian
+	const settingsDocument = "app.setting.activeTab.containerEl.ownerDocument";
+	const row = (name) =>
+		`[...${settingsDocument}.querySelectorAll(".modal:not(.mod-settings) .setting-item")].find(
+			(item) => item.querySelector(".setting-item-name")?.textContent === ${JSON.stringify(name)}
+		)`;
+	const input = (name, selector, value) =>
+		page.evaluate(`(() => {
+			const control = ${row(name)}.querySelector(${JSON.stringify(selector)});
+			control.value = ${JSON.stringify(value)};
+			control.dispatchEvent(new Event("input", { bubbles: true }));
+			control.dispatchEvent(new Event("change", { bubbles: true }));
+		})()`);
+
+	await page.evaluate(`(() => {
+		app.setting.open();
+		app.setting.openTabById("model-viewer");
+		const buttons = [...app.setting.activeTab.containerEl.querySelectorAll("button")];
+		buttons.find((button) => button.textContent === "Edit" && button.closest(".setting-item")
+			.querySelector(".setting-item-description").textContent.includes("in embeds")).click();
+	})()`);
+	await page.waitFor(`!!(${row("Exposure")})`);
+	assert.equal(await page.evaluate(`!!(${row("Touch action")})`), true);
+	assert.equal(await page.evaluate(`!!(${row("Src")})`), false);
+
+	await input("Exposure", "input", "1.5");
+	await input("Auto-rotate", "select", "true");
+	await input("Attributes", "input", "alt=A+triangle");
+	assert.deepEqual(await page.evaluate(settings), {
+		exposure: "1.5",
+		"auto-rotate": "true",
+		alt: "A triangle",
+	});
+
+	await input("Auto-rotate", "select", "");
+	assert.deepEqual(await page.evaluate(settings), { exposure: "1.5", alt: "A triangle" });
+
+	await page.evaluate("app.setting.close()");
+	await openFile("Embed.md");
+	await waitForModel();
+	assert.equal(await page.evaluate(`activeViewer().getAttribute("exposure")`), "1.5");
+	assert.equal(await page.evaluate(`activeViewer().getAttribute("alt")`), "A triangle");
+
+	await page.evaluate(`(() => {
+		const plugin = app.plugins.plugins["model-viewer"];
+		plugin.settings.embed.attributes = {};
+		return plugin.saveSettings();
+	})()`);
+});
+
 test("logs no errors", () => {
-	assert.deepEqual(page.errors, []);
+	// Obsidian itself sometimes throws this while the settings window closes
+	const errors = page.errors.filter((error) => !error.includes("getZoomFactor is not a function"));
+	assert.deepEqual(errors, []);
 });
