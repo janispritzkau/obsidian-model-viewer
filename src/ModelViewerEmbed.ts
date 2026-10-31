@@ -29,6 +29,8 @@ export class ModelViewerEmbed extends Component {
 			maxHeight: settings.embed.maxHeight,
 			sourcePath: this.file.path,
 			attributes: {
+				// not in DEFAULT_SETTINGS, as saved settings replace the default attributes
+				"touch-action": "pan-y",
 				...settings.modelViewer.attributes,
 				...settings.embed.attributes,
 				...attributes,
