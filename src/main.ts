@@ -72,7 +72,7 @@ export default class ModelViewerPlugin extends Plugin {
 					const orbit = modelViewer.getCameraOrbit();
 					const target = modelViewer.getCameraTarget();
 					const fieldOfView = modelViewer.getFieldOfView();
-					const embedLink = this.app.fileManager.generateMarkdownLink(
+					const link = this.app.fileManager.generateMarkdownLink(
 						activeView.file,
 						"",
 						"#" +
@@ -82,7 +82,8 @@ export default class ModelViewerPlugin extends Plugin {
 								"field-of-view": fieldOfView.toString() + "deg",
 							}).toString()
 					);
-					navigator.clipboard.writeText(embedLink).then(() => {
+					// generateMarkdownLink only produces a plain link for glb/gltf files
+					navigator.clipboard.writeText("!" + link).then(() => {
 						new Notice("Copied to your clipboard");
 					});
 				}
