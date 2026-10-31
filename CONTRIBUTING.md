@@ -17,7 +17,7 @@ npm run test:e2e   # build, then test in real Obsidian
 
 The build uses [Vite](https://vite.dev) in library mode (`vite.config.ts`) and writes a single CommonJS `main.js` to the repository root. `src/` is typechecked with `tsconfig.json`, and the Node-side config and build plugins with `tsconfig.node.json`.
 
-To try the plugin by hand, use a separate test vault and link this repository into it as `<vault>/.obsidian/plugins/model-viewer`. Then enable the plugin in Community plugins. Don't develop against a vault you care about.
+To try the plugin by hand, run `npm run example-vault`. It builds the plugin, downloads sample models into `example-vault/` and installs the plugin there, so you can open the folder as a vault. Its notes walk through every feature. Run it again after a change to update the plugin. Don't develop against a vault you care about.
 
 ## Project layout
 
