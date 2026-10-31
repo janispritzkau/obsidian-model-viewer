@@ -418,6 +418,47 @@ test("edits attributes in the settings and applies them to new embeds", async ()
 	}
 });
 
+test("customizes an embed with a live preview", async () => {
+	await openFile("triangle.glb");
+	await waitForModel();
+	await page.evaluate(`delete window.__clipboard`);
+	await page.evaluate(`app.commands.executeCommandById("model-viewer:customize-embed")`);
+
+	const modal = `document.querySelector(".modal:has(model-viewer)")`;
+	const preview = `${modal}.querySelector("model-viewer")`;
+	await page.waitFor(`!!(${modal}) && ${preview}.loaded && ${preview}.modelIsVisible`);
+
+	await page.evaluate(`(() => {
+		const row = [...${modal}.querySelectorAll(".setting-item")].find(
+			(item) => item.querySelector(".setting-item-name")?.textContent === "Exposure"
+		);
+		const input = row.querySelector("input");
+		input.value = "1.5";
+		input.dispatchEvent(new Event("input", { bubbles: true }));
+	})()`);
+	assert.equal(await page.evaluate(`${preview}.getAttribute("exposure")`), "1.5");
+
+	await page.evaluate(`(() => {
+		const preview = ${preview};
+		preview.cameraOrbit = "1rad 1rad auto";
+		preview.jumpCameraToGoal();
+	})()`);
+	await page.waitFor(`Math.abs(${preview}.getCameraOrbit().theta - 1) < 0.01`);
+	await page.evaluate(
+		`[...${modal}.querySelectorAll("button")].find((button) => button.textContent === "Copy embed").click()`
+	);
+
+	const embed = await page.waitFor("window.__clipboard");
+	assert.match(embed, /^!\[\[triangle\.glb#/);
+	await page.waitFor(`!(${modal})`);
+
+	await page.evaluate(`app.vault.create("Customized.md", ${JSON.stringify(embed)}).then(() => {})`);
+	await openFile("Customized.md");
+	await waitForModel();
+	assert.equal(await page.evaluate(`activeViewer().getAttribute("exposure")`), "1.5");
+	await page.waitFor("Math.abs(activeViewer().getCameraOrbit().theta - 1) < 0.01");
+});
+
 test("logs no errors", () => {
 	assert.deepEqual(page.errors, []);
 });
