@@ -21,6 +21,8 @@ export interface ModelViewerComponentOptions {
 
 export class ModelViewerComponent extends MarkdownRenderChild {
 	viewerEl: ModelViewerElement;
+	private sourcePath: string;
+	private attributeNames: string[] = [];
 
 	constructor(containerEl: HTMLElement, options: ModelViewerComponentOptions = {}, private app?: App) {
 		super(containerEl);
@@ -55,13 +57,23 @@ export class ModelViewerComponent extends MarkdownRenderChild {
 			this.viewerEl.style.maxHeight = "";
 		}
 
-		const sourcePath = options.sourcePath ?? "";
-		for (const key in options.attributes) {
-			const raw = options.attributes[key];
+		this.sourcePath = options.sourcePath ?? "";
+		this.setAttributes(options.attributes ?? {});
+	}
+
+	/** Applies attributes and removes the ones set by a previous call that are now missing. */
+	setAttributes(attributes: Record<string, unknown>) {
+		for (const key of this.attributeNames) {
+			if (!(key in attributes)) this.viewerEl.removeAttribute(key);
+		}
+		this.attributeNames = Object.keys(attributes);
+
+		for (const key in attributes) {
+			const raw = attributes[key];
 			if (raw == "false") {
 				this.viewerEl.removeAttribute(key);
 			} else {
-				const value = this.resolveAttributeValue(key, String(raw), sourcePath);
+				const value = this.resolveAttributeValue(key, String(raw), this.sourcePath);
 				this.viewerEl.setAttribute(key, value);
 			}
 		}

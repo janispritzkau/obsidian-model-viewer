@@ -67,3 +67,5 @@ You can also use any of the attributes supported by the \<model-viewer\> compone
 The documentation for all available attributes can be found here: https://modelviewer.dev/docs/index.html
 
 Defaults for all models, the file view and embeds can be edited in the plugin settings.
+
+To build an embed visually, open a model and run the **Customize embed** command. It lets you frame the model in a live preview, try out attributes and copy the finished embed.
