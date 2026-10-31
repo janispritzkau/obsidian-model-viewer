@@ -5,7 +5,7 @@ import type { ModelViewerSettings } from "./settings";
 
 export class ModelViewerEmbed extends Component {
 	private viewer: ModelViewerComponent;
-	private viewerEl: ModelViewerElement;
+	viewerEl: ModelViewerElement;
 	private observer: MutationObserver;
 
 	constructor(

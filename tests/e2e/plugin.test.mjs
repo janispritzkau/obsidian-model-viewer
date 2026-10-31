@@ -17,13 +17,13 @@ after(async () => {
 	await obsidian?.close();
 });
 
-/** Opens a file in a new tab, using reading mode for notes. */
-const openFile = (path) =>
+/** Opens a file in a new tab, using reading mode for notes by default. */
+const openFile = (path, state = { mode: "preview" }) =>
 	page.evaluate(`(async () => {
 		const leaf = app.workspace.getLeaf(true);
 		await leaf.openFile(app.vault.getAbstractFileByPath(${JSON.stringify(path)}), {
 			active: true,
-			state: { mode: "preview" },
+			state: ${JSON.stringify(state)},
 		});
 	})()`);
 
@@ -197,6 +197,106 @@ test("customizes an embed with a live preview", async () => {
 	await waitForModel();
 	assert.equal(await page.evaluate(`activeViewer().getAttribute("exposure")`), "1.5");
 	await page.waitFor("Math.abs(activeViewer().getCameraOrbit().theta - 1) < 0.01");
+});
+
+test("renders a code block with options and an annotation", async () => {
+	await openFile("Annotated.md");
+	await waitForModel();
+
+	assert.equal(await page.evaluate(`activeViewer().getAttribute("exposure")`), "1.5");
+	assert.equal(await page.evaluate(`activeViewer().hasAttribute("camera-controls")`), false);
+	assert.equal(await page.evaluate(`activeViewer().style.aspectRatio`), "16 / 9");
+	assert.equal(await page.evaluate(`activeViewer().querySelectorAll(".model-viewer-annotation").length`), 2);
+});
+
+const annotation = (index) => `activeViewer().querySelectorAll(".model-viewer-annotation")[${index}]`;
+const card = (index) => `${annotation(index)}.querySelector(".model-viewer-annotation-card")`;
+const center = (element) =>
+	page.evaluate(`(() => {
+		const { x, y, width, height } = ${element}.getBoundingClientRect();
+		return { x: x + width / 2, y: y + height / 2 };
+	})()`);
+const visibleText = (index) => page.evaluate(`${card(index)}.innerText.trim()`);
+const isShown = (index) => page.evaluate(`getComputedStyle(${card(index)}).display !== "none"`);
+
+test("shows annotations on demand without covering their point", async () => {
+	await openFile("Annotated.md");
+	await waitForModel();
+	await page.waitFor(`${annotation(0)}.hasAttribute("data-visible")`);
+	await page.hover({ x: 0, y: 0 });
+
+	assert.equal(await isShown(0), false);
+	assert.equal(await isShown(1), false);
+
+	const pin = await center(annotation(0));
+	await page.hover(pin);
+	await page.waitFor(`getComputedStyle(${card(0)}).display !== "none"`);
+	assert.equal(await visibleText(0), "Part of Embed");
+
+	await page.click(pin);
+	await page.hover({ x: 0, y: 0 });
+	assert.match(await visibleText(0), /Only shown when open\./);
+
+	const covered = await page.evaluate(`(() => {
+		const { left, right, top, bottom } = ${card(0)}.getBoundingClientRect();
+		return ${pin.x} >= left && ${pin.x} <= right && ${pin.y} >= top && ${pin.y} <= bottom;
+	})()`);
+	assert.equal(covered, false);
+
+	await page.click(await center(annotation(1)));
+	await page.hover({ x: 0, y: 0 });
+	assert.equal(await isShown(0), false);
+	assert.equal(await isShown(1), true);
+
+	const fits = await page.evaluate(`(() => {
+		const viewer = activeViewer().getBoundingClientRect();
+		const { left, right, top, bottom } = ${card(1)}.getBoundingClientRect();
+		return left >= viewer.left && right <= viewer.right && top >= viewer.top && bottom <= viewer.bottom;
+	})()`);
+	assert.equal(fits, true);
+
+	await page.pressKey("Escape");
+	assert.equal(await isShown(1), false);
+
+	await page.click(await center(annotation(1)));
+	await page.click({ x: 5, y: 5 });
+	assert.equal(await isShown(1), false);
+});
+
+for (const [name, state] of [
+	["reading view", { mode: "preview" }],
+	["live preview", { mode: "source", source: false }],
+]) {
+	test(`opens links in annotations in ${name}`, async () => {
+		await openFile("Annotated.md", state);
+		await waitForModel();
+		await page.waitFor(`!!activeViewer().querySelector("[data-visible] a.internal-link")`);
+		await page.click(await center(annotation(0)));
+		await page.click(await center(`${card(0)}.querySelector("a.internal-link")`));
+		await page.waitFor(`app.workspace.getActiveFile()?.path === "Embed.md"`, { timeout: 3000 });
+	});
+}
+
+test("shows an error for invalid code blocks", async () => {
+	const block = (source) => "\`\`\`model-viewer\n" + source + "\n\`\`\`";
+	const content = [
+		block("src: Missing.glb"),
+		block("aspect: 16:9"),
+		block("src: [unclosed"),
+		block("src: triangle.glb\nannotations:\n  - text: No position"),
+	].join("\n\n");
+	await page.evaluate(`app.vault.create("Errors.md", ${JSON.stringify(content)}).then(() => {})`);
+	await openFile("Errors.md");
+	await page.waitFor(
+		`document.querySelectorAll(".workspace-leaf.mod-active .markdown-preview-view .model-viewer-error").length === 4`
+	);
+	const errors = await page.evaluate(`[...document.querySelectorAll(
+		".workspace-leaf.mod-active .markdown-preview-view .model-viewer-error"
+	)].map((error) => error.textContent)`);
+	assert.equal(errors[0], "File not found: Missing.glb");
+	assert.equal(errors[1], "Missing the src of the model");
+	assert.match(errors[2], /^Invalid YAML/);
+	assert.equal(errors[3], "Annotation 1 needs a position");
 });
 
 test("logs no errors", () => {

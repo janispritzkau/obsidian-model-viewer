@@ -2,6 +2,7 @@ import { normalizePath, Notice, Plugin, type TFile } from "obsidian";
 import { CustomizeEmbedModal } from "./CustomizeEmbedModal";
 import { createEmbedLink } from "./embedLink";
 import extractLibs from "./extract_libs";
+import { renderCodeBlock } from "./ModelViewerCodeBlock";
 import { ModelViewerEmbed } from "./ModelViewerEmbed";
 import { ModelViewerFileView } from "./ModelViewerFileView";
 import { ModelViewerSettingTab } from "./ModelViewerSettingTab";
@@ -62,6 +63,10 @@ export default class ModelViewerPlugin extends Plugin {
 				);
 			}
 		);
+
+		this.registerMarkdownCodeBlockProcessor("model-viewer", (source, el, ctx) => {
+			renderCodeBlock(this.app, this.settings, source, el, ctx);
+		});
 
 		this.addCommand({
 			id: "copy-embed-with-current-view",
