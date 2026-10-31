@@ -18,13 +18,13 @@ after(async () => {
 	await obsidian?.close();
 });
 
-/** Opens a file in a new tab, using reading mode for notes. */
-const openFile = (path) =>
+/** Opens a file in a new tab, using reading mode for notes by default. */
+const openFile = (path, state = { mode: "preview" }) =>
 	page.evaluate(`(async () => {
 		const leaf = app.workspace.getLeaf(true);
 		await leaf.openFile(app.vault.getAbstractFileByPath(${JSON.stringify(path)}), {
 			active: true,
-			state: { mode: "preview" },
+			state: ${JSON.stringify(state)},
 		});
 	})()`);
 
@@ -476,6 +476,62 @@ test("keeps special characters in embed attributes", async () => {
 		await waitForModel();
 		assert.equal(await page.evaluate(`activeViewer().getAttribute("alt")`), alt, note);
 	}
+});
+
+test("renders a code block with options and an annotation", async () => {
+	await openFile("Annotated.md");
+	await waitForModel();
+
+	assert.equal(await page.evaluate(`activeViewer().getAttribute("exposure")`), "1.5");
+	assert.equal(await page.evaluate(`activeViewer().hasAttribute("camera-controls")`), false);
+	assert.equal(await page.evaluate(`activeViewer().style.aspectRatio`), "16 / 9");
+	assert.equal(
+		await page.evaluate(`activeViewer().querySelector(".model-viewer-annotation").textContent.trim()`),
+		"Part of Embed"
+	);
+});
+
+for (const [name, state] of [
+	["reading view", { mode: "preview" }],
+	["live preview", { mode: "source", source: false }],
+]) {
+	test(`opens links in annotations in ${name}`, async () => {
+		await openFile("Annotated.md", state);
+		await waitForModel();
+		await page.waitFor(`!!activeViewer().querySelector("a.internal-link")`);
+		await page.waitFor(`activeViewer().querySelector("[data-visible] a") != null`);
+
+		const link = await page.evaluate(`(() => {
+			const { x, y, width, height } = activeViewer()
+				.querySelector("a.internal-link")
+				.getBoundingClientRect();
+			return { x: x + width / 2, y: y + height / 2 };
+		})()`);
+		await page.click(link);
+		await page.waitFor(`app.workspace.getActiveFile()?.path === "Embed.md"`, { timeout: 3000 });
+	});
+}
+
+test("shows an error for invalid code blocks", async () => {
+	const block = (source) => "\`\`\`model-viewer\n" + source + "\n\`\`\`";
+	const content = [
+		block("src: Missing.glb"),
+		block("aspect: 16:9"),
+		block("src: [unclosed"),
+		block("src: triangle.glb\nannotations:\n  - text: No position"),
+	].join("\n\n");
+	await page.evaluate(`app.vault.create("Errors.md", ${JSON.stringify(content)}).then(() => {})`);
+	await openFile("Errors.md");
+	await page.waitFor(
+		`document.querySelectorAll(".workspace-leaf.mod-active .markdown-preview-view .model-viewer-error").length === 4`
+	);
+	const errors = await page.evaluate(`[...document.querySelectorAll(
+		".workspace-leaf.mod-active .markdown-preview-view .model-viewer-error"
+	)].map((error) => error.textContent)`);
+	assert.equal(errors[0], "File not found: Missing.glb");
+	assert.equal(errors[1], "Missing the src of the model");
+	assert.match(errors[2], /^Invalid YAML/);
+	assert.equal(errors[3], "Annotation 1 needs a position");
 });
 
 test("logs no errors", () => {

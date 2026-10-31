@@ -78,3 +78,32 @@
 .model-viewer-customize-footer {
 	bottom: 0;
 }
+
+.block-language-model-viewer {
+	display: block;
+}
+
+.model-viewer-error {
+	color: var(--text-error);
+}
+
+.model-viewer-annotation {
+	max-width: 240px;
+	padding: var(--size-4-2) var(--size-4-3);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	background-color: var(--background-primary);
+	transition: opacity 0.2s;
+}
+
+.model-viewer-annotation:not([data-visible]) {
+	opacity: 0.2;
+}
+
+.model-viewer-annotation > :first-child {
+	margin-top: 0;
+}
+
+.model-viewer-annotation > :last-child {
+	margin-bottom: 0;
+}
