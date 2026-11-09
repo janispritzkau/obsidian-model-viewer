@@ -489,7 +489,7 @@ test("renders a code block with options and an annotation", async () => {
 });
 
 const annotation = (index) => `activeViewer().querySelectorAll(".model-viewer-annotation")[${index}]`;
-const card = (index) => `${annotation(index)}.querySelector(".model-viewer-annotation-card")`;
+const card = (index) => `activeViewer().querySelectorAll(".model-viewer-annotation-card")[${index}]`;
 const center = (element) =>
 	page.evaluate(`(() => {
 		const { x, y, width, height } = ${element}.getBoundingClientRect();
@@ -549,12 +549,71 @@ for (const [name, state] of [
 	test(`opens links in annotations in ${name}`, async () => {
 		await openFile("Annotated.md", state);
 		await waitForModel();
-		await page.waitFor(`!!activeViewer().querySelector("[data-visible] a.internal-link")`);
+		await page.waitFor(`${annotation(0)}.hasAttribute("data-visible") && !!${card(0)}.querySelector("a.internal-link")`);
 		await page.click(await center(annotation(0)));
 		await page.click(await center(`${card(0)}.querySelector("a.internal-link")`));
 		await page.waitFor(`app.workspace.getActiveFile()?.path === "Embed.md"`, { timeout: 3000 });
 	});
 }
+
+test("draws an open card above other annotations and keeps it while rotating", async () => {
+	// Finds two points on the model, the second where the card of the first opens
+	await openFile("triangle.glb");
+	await waitForModel();
+	const points = await page.evaluate(`(() => {
+		const viewer = activeViewer();
+		const { x, y, width, height } = viewer.getBoundingClientRect();
+		const point = (dx, dy) => {
+			const hit = viewer.positionAndNormalFromPoint(x + width / 2 + dx, y + height / 2 + dy);
+			return hit && { position: hit.position.toString(), normal: hit.normal.toString() };
+		};
+		return [point(-20, 0), point(40, 20)];
+	})()`);
+	assert.ok(points[0] && points[1], "the triangle covers the center of the view");
+
+	const content = [
+		"```model-viewer",
+		"src: triangle.glb",
+		"annotations:",
+		...points.flatMap(({ position, normal }, index) => [
+			`  - position: "${position}"`,
+			`    normal: "${normal}"`,
+			`    text: "Annotation ${index + 1} with a longer text, so that its card is wide"`,
+		]),
+		"```",
+	].join("\n");
+	await page.evaluate(`app.vault.create("Overlap.md", ${JSON.stringify(content)}).then(() => {})`);
+	await openFile("Overlap.md");
+	await waitForModel();
+	await page.waitFor(`${annotation(0)}.hasAttribute("data-visible") && ${annotation(1)}.hasAttribute("data-visible")`);
+
+	await page.click(await center(annotation(0)));
+	await page.waitFor(`${card(0)}.classList.contains("is-open")`);
+	const covered = await center(annotation(1));
+	assert.equal(
+		await page.evaluate(`${card(0)}.contains(document.elementFromPoint(${covered.x}, ${covered.y}))`),
+		true,
+		"the open card is drawn above the other ring"
+	);
+
+	// Turns the model around, so the annotation ends up behind it
+	await page.evaluate(`(() => {
+		const viewer = activeViewer();
+		const { theta, phi } = viewer.getCameraOrbit();
+		viewer.cameraOrbit = (theta + Math.PI) + "rad " + phi + "rad auto";
+		viewer.jumpCameraToGoal();
+	})()`);
+	await page.waitFor(`!${annotation(0)}.hasAttribute("data-visible")`);
+	await new Promise((resolve) => setTimeout(resolve, 300));
+	assert.equal(await isShown(0), true, "the card stays open");
+	const cardCenter = await center(card(0));
+	assert.equal(
+		await page.evaluate(`${card(0)}.contains(document.elementFromPoint(${cardCenter.x}, ${cardCenter.y}))`),
+		true,
+		"the card can still be clicked"
+	);
+	assert.equal(await page.evaluate(`getComputedStyle(${card(0)}).opacity`), "1");
+});
 
 test("shows an error for invalid code blocks", async () => {
 	const block = (source) => "\`\`\`model-viewer\n" + source + "\n\`\`\`";

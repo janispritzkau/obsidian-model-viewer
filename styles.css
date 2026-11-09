@@ -124,13 +124,40 @@
 	box-shadow: 0 0 0 2px var(--background-modifier-border-focus);
 }
 
+/* Keeps the z-index of the annotation layer from reaching Obsidian's own popups */
+model-viewer:has(> .model-viewer-annotation-layer) {
+	isolation: isolate;
+}
+
+/*
+ * In the default slot of <model-viewer>. Hotspots get a z-index from 1 up to their
+ * count, sorted by depth, so this needs a higher one to draw cards above all of them.
+ */
+.model-viewer-annotation-layer {
+	position: absolute;
+	inset: 0;
+	z-index: 10000;
+	pointer-events: none;
+}
+
 .model-viewer-annotation-card {
 	display: none;
 	position: absolute;
-	top: 50%;
-	left: 100%;
 	width: max-content;
 	max-width: min(240px, var(--card-max-width, 240px));
+	cursor: auto;
+	pointer-events: auto;
+}
+
+.model-viewer-annotation-card:focus {
+	outline: none;
+}
+
+.model-viewer-annotation-card.is-shown {
+	display: block;
+}
+
+.model-viewer-annotation-card-content {
 	max-height: var(--card-max-height);
 	overflow-y: auto;
 	padding: var(--size-4-2) var(--size-4-3);
@@ -138,49 +165,39 @@
 	border-radius: var(--radius-m);
 	background-color: var(--background-primary);
 	font-size: var(--font-ui-small);
-	cursor: auto;
 }
 
-.model-viewer-annotation.mod-left .model-viewer-annotation-card {
-	left: auto;
-	right: 100%;
-}
-
-.model-viewer-annotation.mod-up .model-viewer-annotation-card {
-	top: auto;
-	bottom: 50%;
-}
-
-.model-viewer-annotation:is(.is-open, .is-hovered, :focus-visible, :has(:focus-visible)) .model-viewer-annotation-card {
-	display: block;
-}
-
-/* Connects the ring to the card */
-.model-viewer-annotation:is(.is-open, .is-hovered, :focus-visible, :has(:focus-visible))::after {
+/* Connects the card to its ring */
+.model-viewer-annotation-card::before {
 	content: "";
 	position: absolute;
-	top: 50%;
-	left: calc(50% + 6px);
+	top: 0;
+	left: -8px;
 	width: 8px;
 	height: 1px;
 	background-color: var(--background-modifier-border);
 }
 
-.model-viewer-annotation.mod-left::after {
+.model-viewer-annotation-card.mod-up::before {
+	top: auto;
+	bottom: 0;
+}
+
+.model-viewer-annotation-card.mod-left::before {
 	left: auto;
-	right: calc(50% + 6px);
+	right: -8px;
 }
 
 /* Closed annotations only preview the first paragraph */
-.model-viewer-annotation:not(.is-open) .model-viewer-annotation-card > :not(:first-child) {
+.model-viewer-annotation-card:not(.is-open) .model-viewer-annotation-card-content > :not(:first-child) {
 	display: none;
 }
 
-.model-viewer-annotation-card > :first-child {
+.model-viewer-annotation-card-content > :first-child {
 	margin-top: 0;
 }
 
-.model-viewer-annotation-card > :last-child,
-.model-viewer-annotation:not(.is-open) .model-viewer-annotation-card > :first-child {
+.model-viewer-annotation-card-content > :last-child,
+.model-viewer-annotation-card:not(.is-open) .model-viewer-annotation-card-content > :first-child {
 	margin-bottom: 0;
 }

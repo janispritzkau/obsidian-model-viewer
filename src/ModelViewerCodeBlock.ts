@@ -154,19 +154,40 @@ function renderAnnotations(
 	sourcePath: string,
 	showError: (text: string) => void
 ) {
-	let openEl: HTMLElement | null = null;
 	const doc = viewerEl.ownerDocument;
+	// <model-viewer> stacks hotspots by depth and fades the ones behind the model, which
+	// would also apply to a card inside its ring. Cards live in their own layer instead,
+	// in the default slot, which is drawn above all hotspots.
+	const layerEl = viewerEl.createDiv({ cls: "model-viewer-annotation-layer" });
 
-	const setOpen = (annotationEl: HTMLElement | null) => {
-		openEl?.removeClass("is-open");
-		openEl?.setAttribute("aria-expanded", "false");
-		annotationEl?.addClass("is-open");
-		annotationEl?.setAttribute("aria-expanded", "true");
-		if (annotationEl) {
-			placeCard(annotationEl, viewerEl);
-			doc.dispatchEvent(new CustomEvent(OPEN_EVENT, { detail: viewerEl }));
+	interface Item {
+		ringEl: HTMLElement;
+		cardEl: HTMLElement;
+	}
+	const items: Item[] = [];
+	let open: Item | null = null;
+	let preview: Item | null = null;
+
+	const update = () => {
+		for (const item of items) {
+			const shown = item == open || item == preview;
+			item.ringEl.toggleClass("is-open", item == open);
+			item.ringEl.setAttribute("aria-expanded", String(item == open));
+			item.cardEl.toggleClass("is-open", item == open);
+			item.cardEl.toggleClass("is-shown", shown);
+			if (shown) placeCard(item, viewerEl);
 		}
-		openEl = annotationEl;
+	};
+
+	const setOpen = (item: Item | null) => {
+		open = item;
+		if (item) doc.dispatchEvent(new CustomEvent(OPEN_EVENT, { detail: viewerEl }));
+		update();
+	};
+
+	const setPreview = (item: Item | null) => {
+		preview = item;
+		update();
 	};
 
 	const ids = new Set<string>();
@@ -185,99 +206,111 @@ function renderAnnotations(
 		}
 		ids.add(slot);
 
-		const annotationEl = viewerEl.createDiv({
+		const ringEl = viewerEl.createDiv({
 			cls: "model-viewer-annotation",
 			attr: { role: "button", tabindex: 0, "aria-expanded": false },
 		});
-		annotationEl.slot = slot;
-		annotationEl.dataset.visibilityAttribute = "visible";
+		ringEl.slot = slot;
+		ringEl.dataset.visibilityAttribute = "visible";
 		if (annotation.surface != null) {
-			annotationEl.dataset.surface = annotation.surface;
+			ringEl.dataset.surface = annotation.surface;
 		} else {
-			annotationEl.dataset.position = annotation.position;
-			annotationEl.dataset.normal = annotation.normal ?? "0m 1m 0m";
+			ringEl.dataset.position = annotation.position;
+			ringEl.dataset.normal = annotation.normal ?? "0m 1m 0m";
 		}
 
-		const cardEl = annotationEl.createDiv({ cls: "model-viewer-annotation-card" });
-		void MarkdownRenderer.render(app, annotation.text, cardEl, sourcePath, child);
+		const cardEl = layerEl.createDiv({ cls: "model-viewer-annotation-card", attr: { tabindex: -1 } });
+		// Scrolls inside the card, which would clip the line to the ring
+		const contentEl = cardEl.createDiv({ cls: "model-viewer-annotation-card-content" });
+		void MarkdownRenderer.render(app, annotation.text, contentEl, sourcePath, child);
 
-		const toggle = () => setOpen(openEl == annotationEl ? null : annotationEl);
-		const place = () => placeCard(annotationEl, viewerEl);
+		const item: Item = { ringEl, cardEl };
+		items.push(item);
 
-		child.registerDomEvent(annotationEl, "pointerenter", (event) => {
-			if (event.pointerType != "mouse") return;
-			annotationEl.addClass("is-hovered");
-			place();
+		child.registerDomEvent(ringEl, "pointerenter", (event) => {
+			if (event.pointerType == "mouse") setPreview(item);
 		});
-		child.registerDomEvent(annotationEl, "pointerleave", () => {
-			annotationEl.removeClass("is-hovered");
+		child.registerDomEvent(ringEl, "pointerleave", () => {
+			if (preview == item) setPreview(null);
 		});
-		child.registerDomEvent(annotationEl, "focus", place);
-		child.registerDomEvent(annotationEl, "click", (event) => {
-			if (cardEl.contains(event.target as Node)) return;
+		child.registerDomEvent(ringEl, "focus", () => {
+			if (ringEl.matches(":focus-visible")) setPreview(item);
+		});
+		child.registerDomEvent(ringEl, "blur", () => {
+			if (preview == item) setPreview(null);
+		});
+		child.registerDomEvent(ringEl, "click", (event) => {
 			event.stopPropagation();
-			toggle();
+			setOpen(open == item ? null : item);
 		});
-		child.registerDomEvent(annotationEl, "keydown", (event) => {
-			if (event.target != annotationEl || (event.key != "Enter" && event.key != " ")) return;
+		child.registerDomEvent(ringEl, "keydown", (event) => {
+			if (event.key != "Enter" && event.key != " ") return;
 			event.preventDefault();
-			toggle();
+			setOpen(open == item ? null : item);
+			// so that Tab moves on to the links in the card
+			if (open == item) cardEl.focus();
 		});
 		// the handler of the viewer would otherwise cancel taps when touch-action is none
-		child.registerDomEvent(annotationEl, "touchstart", (event) => event.stopPropagation(), {
-			passive: true,
-		});
+		for (const el of [ringEl, cardEl]) {
+			child.registerDomEvent(el, "touchstart", (event) => event.stopPropagation(), {
+				passive: true,
+			});
+		}
 	});
 
 	let pointerDown = { x: 0, y: 0 };
 
 	child.registerDomEvent(viewerEl, "camera-change" as keyof HTMLElementEventMap, () => {
-		if (!openEl) return;
-		// Behind the model, the card would be faded and its links couldn't be clicked
-		if (!openEl.hasAttribute("data-visible")) {
-			setOpen(null);
-			return;
-		}
-		placeCard(openEl, viewerEl);
+		// Cards follow their ring, and stay usable while it's behind the model
+		for (const item of [open, preview]) if (item) placeCard(item, viewerEl);
 	});
 	child.registerDomEvent(doc, OPEN_EVENT as keyof DocumentEventMap, (event) => {
-		if ((event as CustomEvent).detail != viewerEl) setOpen(null);
+		if ((event as CustomEvent).detail != viewerEl && open) setOpen(null);
 	});
 	child.registerDomEvent(doc, "keydown", (event) => {
-		if (event.key != "Escape") return;
-		setOpen(null);
-		// a focused annotation would keep showing its preview
+		if (event.key != "Escape" || (!open && !preview)) return;
 		const focusedEl = doc.activeElement as HTMLElement | null;
-		if (focusedEl?.matches(".model-viewer-annotation") && viewerEl.contains(focusedEl)) {
-			focusedEl.blur();
-		}
+		// a focused ring would keep showing its preview
+		if (focusedEl && viewerEl.contains(focusedEl)) focusedEl.blur();
+		preview = null;
+		setOpen(null);
 	});
 	child.registerDomEvent(doc, "pointerdown", ({ clientX: x, clientY: y }) => {
 		pointerDown = { x, y };
 	});
 	child.registerDomEvent(doc, "click", (event) => {
+		if (!open || open.cardEl.contains(event.target as Node)) return;
 		// keeps the annotation open while rotating the model to look at it
 		const moved = Math.hypot(event.clientX - pointerDown.x, event.clientY - pointerDown.y);
-		if (moved < 5 && !openEl?.contains(event.target as Node)) setOpen(null);
+		if (moved < 5) setOpen(null);
 	});
 }
 
-/** Opens the card on the side with the most room, so it stays within the viewer. */
-function placeCard(annotationEl: HTMLElement, viewerEl: ModelViewerElement) {
-	const pin = annotationEl.getBoundingClientRect();
-	const viewer = viewerEl.getBoundingClientRect();
-	const x = pin.left + pin.width / 2;
-	const y = pin.top + pin.height / 2;
-	const left = x - viewer.left;
-	const right = viewer.right - x;
-	const above = y - viewer.top;
-	const below = viewer.bottom - y;
+/** Half the size of a ring, which is where the line to the card ends. */
+const RING_RADIUS = 14;
 
-	annotationEl.toggleClass("mod-left", left > right);
-	annotationEl.toggleClass("mod-up", above > below);
-	annotationEl.style.setProperty(
+/** Places the card beside its ring, on the side with the most room within the viewer. */
+function placeCard({ ringEl, cardEl }: { ringEl: HTMLElement; cardEl: HTMLElement }, viewerEl: ModelViewerElement) {
+	const ring = ringEl.getBoundingClientRect();
+	const viewer = viewerEl.getBoundingClientRect();
+	const x = ring.left + ring.width / 2 - viewer.left;
+	const y = ring.top + ring.height / 2 - viewer.top;
+	const left = x;
+	const right = viewer.width - x;
+	const above = y;
+	const below = viewer.height - y;
+	const toLeft = left > right;
+	const up = above > below;
+
+	cardEl.toggleClass("mod-left", toLeft);
+	cardEl.toggleClass("mod-up", up);
+	cardEl.style.left = toLeft ? "" : `${x + RING_RADIUS}px`;
+	cardEl.style.right = toLeft ? `${viewer.width - x + RING_RADIUS}px` : "";
+	cardEl.style.top = up ? "" : `${y}px`;
+	cardEl.style.bottom = up ? `${viewer.height - y}px` : "";
+	cardEl.style.setProperty(
 		"--card-max-width",
-		`${Math.max(Math.max(left, right) - pin.width / 2 - CARD_MARGIN, CARD_MIN_WIDTH)}px`
+		`${Math.max(Math.max(left, right) - RING_RADIUS - CARD_MARGIN, CARD_MIN_WIDTH)}px`
 	);
-	annotationEl.style.setProperty("--card-max-height", `${Math.max(above, below) - CARD_MARGIN}px`);
+	cardEl.style.setProperty("--card-max-height", `${Math.max(above, below) - CARD_MARGIN}px`);
 }
