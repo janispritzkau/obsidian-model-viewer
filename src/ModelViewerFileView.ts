@@ -10,13 +10,17 @@ export class ModelViewerFileView extends FileView {
 	constructor(leaf: WorkspaceLeaf, settings: ModelViewerSettings) {
 		super(leaf);
 		this.viewer = this.addChild(
-			new ModelViewerComponent(this.contentEl, {
-				enableOverlay: settings.fileView.enableOverlay,
-				attributes: {
-					...settings.modelViewer.attributes,
-					...settings.fileView.attributes,
+			new ModelViewerComponent(
+				this.contentEl,
+				{
+					enableOverlay: settings.fileView.enableOverlay,
+					attributes: {
+						...settings.modelViewer.attributes,
+						...settings.fileView.attributes,
+					},
 				},
-			}, this.app)
+				this.app
+			)
 		);
 		this.viewerEl = this.viewer.viewerEl;
 		this.viewerEl.fieldOfView = "50deg";

@@ -1,5 +1,5 @@
 import { normalizePath, Notice, Plugin, type TFile } from "obsidian";
-import extractLibs from "./extract_libs";
+import extractLibs from "virtual:extract-libs";
 import { ModelViewerEmbed } from "./ModelViewerEmbed";
 import { ModelViewerFileView } from "./ModelViewerFileView";
 import { ModelViewerSettingTab } from "./ModelViewerSettingTab";
@@ -84,7 +84,7 @@ export default class ModelViewerPlugin extends Plugin {
 					);
 					// generateMarkdownLink only produces a plain link for glb/gltf files
 					const embed = link.startsWith("!") ? link : "!" + link;
-					navigator.clipboard.writeText(embed).then(() => {
+					void navigator.clipboard.writeText(embed).then(() => {
 						new Notice("Copied to your clipboard");
 					});
 				}

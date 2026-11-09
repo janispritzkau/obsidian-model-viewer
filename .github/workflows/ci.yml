@@ -30,6 +30,10 @@ jobs:
       - run: npm ci
       - name: Typecheck and build
         run: npm run build
+      - name: Lint
+        run: npm run lint
+      - name: Check formatting
+        run: npm run format:check
 
   e2e:
     runs-on: ubuntu-24.04

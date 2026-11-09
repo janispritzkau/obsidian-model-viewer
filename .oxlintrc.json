@@ -1,0 +1,21 @@
+{
+	"$schema": "./node_modules/oxlint/configuration_schema.json",
+	"plugins": ["typescript", "unicorn", "oxc", "import"],
+	"categories": { "correctness": "error" },
+	"options": { "typeAware": true },
+	"env": { "browser": true, "es2022": true },
+	"ignorePatterns": ["main.js", "lib/**", "tests/e2e/vault/**"],
+	"rules": {
+		"typescript/no-floating-promises": "error",
+		"typescript/no-misused-promises": "error",
+		"typescript/unbound-method": "error"
+	},
+	"overrides": [
+		{
+			"files": ["tests/**"],
+			"rules": {
+				"typescript/no-floating-promises": "off"
+			}
+		}
+	]
+}

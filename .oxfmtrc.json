@@ -1,0 +1,7 @@
+{
+	"$schema": "./node_modules/oxfmt/configuration_schema.json",
+	"printWidth": 100,
+	"useTabs": true,
+	"trailingComma": "es5",
+	"ignorePatterns": ["lib/**", "main.js", "tests/e2e/vault/**", "**/*.md", "**/*.yml", "**/*.json"]
+}

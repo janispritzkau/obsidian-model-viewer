@@ -3,9 +3,11 @@ import { Component, DropdownComponent } from "obsidian";
 import { ModelViewerPlayButton } from "./ModelViewerPlayButton";
 
 export class ModelViewerOverlay extends Component {
-	constructor(private containerEl: HTMLElement, private viewer: ModelViewerElement) {
+	constructor(
+		private containerEl: HTMLElement,
+		private viewer: ModelViewerElement
+	) {
 		super();
-		this.handleLoad = this.handleLoad.bind(this);
 	}
 
 	onload(): void {
@@ -16,7 +18,7 @@ export class ModelViewerOverlay extends Component {
 		this.viewer.removeEventListener("load", this.handleLoad);
 	}
 
-	private handleLoad() {
+	private handleLoad = () => {
 		if (this.viewer.availableVariants.length != 0) {
 			const dropdown = new DropdownComponent(this.containerEl);
 			dropdown.selectEl.addClass("model-viewer-variant-dropdown");
@@ -54,5 +56,5 @@ export class ModelViewerOverlay extends Component {
 
 			new ModelViewerPlayButton(animationOverlay, this.viewer);
 		}
-	}
+	};
 }
