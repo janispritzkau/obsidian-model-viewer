@@ -1,3 +1,10 @@
+## [1.1.1](https://github.com/janispritzkau/obsidian-model-viewer/compare/1.1.0...1.1.1) (2026-11-09)
+
+### Bug Fixes
+
+* address the community scorecard's review findings ([c8ec580](https://github.com/janispritzkau/obsidian-model-viewer/commit/c8ec5803e82c214bb8a9f8feb024a72fef7490a6))
+* update model-viewer to 4.4 ([61c75ac](https://github.com/janispritzkau/obsidian-model-viewer/commit/61c75ac32332fbab3f417374aa76b5a65860aa2e))
+
 # [1.1.0](https://github.com/janispritzkau/obsidian-model-viewer/compare/1.0.5...1.1.0) (2026-11-09)
 
 
