@@ -54,6 +54,7 @@ test("renders a model in the file view", async () => {
 for (const [name, decoder] of [
 	["draco", "/lib/draco/"],
 	["meshopt", "/lib/meshopt_decoder.js"],
+	["ktx2", "/lib/basis/"],
 ]) {
 	test(`renders ${name}-compressed models with the bundled decoder`, async () => {
 		await openFile(`triangle-${name}.glb`);
@@ -64,6 +65,15 @@ for (const [name, decoder] of [
 			`${decoder} wasn't requested`
 		);
 		assert.ok(!page.requests.some((url) => url.includes("gstatic.com")));
+		if (name === "ktx2") {
+			// The texture is only set once the transcoder has decoded it
+			const hasTexture = await page.evaluate(`(async () => {
+				const material = activeViewer().model.getMaterialByName("textured");
+				await material.ensureLoaded();
+				return material.pbrMetallicRoughness.baseColorTexture.texture != null;
+			})()`);
+			assert.equal(hasTexture, true);
+		}
 	});
 }
 
