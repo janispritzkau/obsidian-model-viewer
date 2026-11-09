@@ -24,6 +24,37 @@ export interface ModelViewerComponentOptions {
 	sourcePath?: string;
 }
 
+/** Calls `onReattach` when it's inserted into the document again after being removed. */
+class ReattachSentinel extends HTMLElement {
+	onReattach?: (detachedMs: number) => void;
+	private detachedAt: number | null = null;
+
+	connectedCallback() {
+		if (this.detachedAt == null) return;
+		const detachedMs = performance.now() - this.detachedAt;
+		this.detachedAt = null;
+		this.onReattach?.(detachedMs);
+	}
+
+	disconnectedCallback() {
+		this.detachedAt = performance.now();
+	}
+}
+
+const SENTINEL_TAG = "model-viewer-reattach-sentinel";
+
+function createReattachSentinel(): ReattachSentinel {
+	// Already defined when the plugin is reloaded; the old class behaves the same.
+	if (!customElements.get(SENTINEL_TAG)) customElements.define(SENTINEL_TAG, ReattachSentinel);
+	// Constructed directly, so it's created in the window that defined it, also for popouts
+	const sentinel = new ReattachSentinel();
+	sentinel.hidden = true;
+	return sentinel;
+}
+
+/** How long <model-viewer> waits after being removed before it disposes its scene. */
+const CLEAR_MODEL_TIMEOUT_MS = 10;
+
 export class ModelViewerComponent extends MarkdownRenderChild {
 	viewerEl: ModelViewerElement;
 
@@ -35,6 +66,19 @@ export class ModelViewerComponent extends MarkdownRenderChild {
 		super(containerEl);
 
 		this.viewerEl = containerEl.createEl("model-viewer", { cls: "model-viewer-element" });
+
+		// <model-viewer> disposes its scene shortly after it's removed from the document,
+		// but doesn't load it again when it's inserted again, so the model stays blank.
+		// Obsidian does this when it unloads sections of a long note while scrolling, and
+		// when it moves a tab. The sentinel comes after the viewer, so it's notified after
+		// the viewer has reconnected.
+		const sentinel = createReattachSentinel();
+		sentinel.onReattach = (detachedMs) => {
+			if (detachedMs >= CLEAR_MODEL_TIMEOUT_MS && this.viewerEl.src) {
+				this.viewerEl.requestUpdate("src", null);
+			}
+		};
+		containerEl.appendChild(sentinel);
 
 		this.viewerEl.addEventListener(
 			"touchstart",
