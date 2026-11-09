@@ -5,10 +5,19 @@ import { AttributesModal } from "./AttributesModal";
 
 export class ModelViewerSettingTab extends PluginSettingTab {
 	plugin: ModelViewerPlugin;
+	private modal: AttributesModal | null = null;
 
 	constructor(app: App, plugin: ModelViewerPlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
+	}
+
+	hide(): void {
+		// Settings have their own window, and closing it with the modal still open makes
+		// Obsidian throw while it tears the window down.
+		this.modal?.close();
+		this.modal = null;
+		super.hide();
 	}
 
 	display(): void {
@@ -99,11 +108,17 @@ export class ModelViewerSettingTab extends PluginSettingTab {
 			.setDesc(summary())
 			.addButton((button) => {
 				button.setButtonText("Edit").onClick(() => {
-					new AttributesModal(this.app, name, attributes.get(), scope, async (value) => {
+					const title = {
+						defaults: "Default attributes",
+						fileView: "File view attributes",
+						embed: "Embed attributes",
+					}[scope];
+					this.modal = new AttributesModal(this.app, title, attributes.get(), scope, async (value) => {
 						attributes.set(value);
 						setting.setDesc(summary());
 						await this.plugin.saveSettings();
-					}).open();
+					});
+					this.modal.open();
 				});
 			});
 	}

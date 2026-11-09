@@ -6,6 +6,8 @@ import { parseAttributes, stringifyAttributes } from "./settings";
 export class AttributeEditor {
 	private attributes: Record<string, string>;
 	private known: Set<string>;
+	/** Shows a new value in the control of a known attribute. */
+	private controls = new Map<string, (value: string) => void>();
 
 	constructor(
 		containerEl: HTMLElement,
@@ -44,7 +46,12 @@ export class AttributeEditor {
 					for (const name in this.otherAttributes()) {
 						delete this.attributes[name];
 					}
-					Object.assign(this.attributes, parseAttributes(value));
+					const parsed = parseAttributes(value);
+					Object.assign(this.attributes, parsed);
+					// Attributes with a control are shown there, so the two never disagree
+					for (const name in parsed) {
+						this.controls.get(name)?.(parsed[name]);
+					}
 					this.emit();
 				});
 			});
@@ -56,21 +63,45 @@ export class AttributeEditor {
 			.setDesc(definition.description);
 		const value = this.attributes[definition.name] ?? "";
 		const update = (value: string) => this.setValue(definition.name, value);
+		const unset = this.scope === "defaults" ? "Not set" : "Inherit";
 
 		if (definition.type === "text") {
-			setting.addText((text) => text.setValue(value).onChange(update));
+			setting.addText((text) => {
+				// "false" removes an attribute, which is how a value from the defaults is cleared
+				text.setPlaceholder(this.scope === "defaults" ? unset : `${unset}, or false to remove`);
+				text.setValue(value).onChange(update);
+				this.controls.set(definition.name, (value) => text.setValue(value));
+			});
 			return;
 		}
 
 		setting.addDropdown((dropdown) => {
-			dropdown.addOption("", this.scope === "defaults" ? "Not set" : "Inherit");
+			const options = new Set([""]);
+			const addOption = (option: string, label: string) => {
+				options.add(option);
+				dropdown.addOption(option, label);
+			};
+			addOption("", unset);
 			if (definition.type === "boolean") {
-				dropdown.addOption("true", "On").addOption("false", "Off");
+				addOption("true", "On");
+				// Off only differs from Not set where it overrides the defaults
+				if (this.scope !== "defaults") addOption("false", "Off");
 			}
 			for (const option of definition.options ?? []) {
-				dropdown.addOption(option, option);
+				addOption(option, option);
 			}
-			dropdown.setValue(value).onChange(update);
+			const show = (value: string) => {
+				// A boolean attribute that is present without a value, as in HTML, is on
+				if (definition.type === "boolean" && value === "" && definition.name in this.attributes) {
+					value = "true";
+				}
+				// Keeps values from before this editor visible instead of showing a blank
+				if (!options.has(value)) addOption(value, `${value} (custom)`);
+				dropdown.setValue(value);
+			};
+			show(value);
+			dropdown.onChange(update);
+			this.controls.set(definition.name, show);
 		});
 	}
 

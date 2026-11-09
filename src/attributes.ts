@@ -129,7 +129,7 @@ export const ATTRIBUTE_GROUPS: AttributeGroup[] = [
 				label: "Tone mapping",
 				description: "How colors are mapped for display",
 				type: "select",
-				options: ["auto", "aces", "agx", "neutral"],
+				options: ["auto", "aces", "agx", "commerce", "neutral"],
 			},
 		],
 	},
