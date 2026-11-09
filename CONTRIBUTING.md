@@ -36,7 +36,7 @@ To try the plugin by hand, use a separate test vault and link this repository in
 
 ## Testing
 
-`npm run test:e2e` starts a separate Obsidian window with a temporary profile and a copy of `tests/e2e/vault`, and deletes both afterwards. Your own Obsidian and vaults aren't touched, but the window appears on screen while the tests run. If Obsidian isn't at the default macOS path, set `OBSIDIAN_BINARY`.
+`npm run test:e2e` starts a separate Obsidian window with a temporary profile and a copy of `tests/e2e/vault`, and deletes both afterwards. Your own Obsidian and vaults aren't touched. On macOS the window stays in the background and doesn't take focus, so you can keep working. If Obsidian isn't at the default macOS path, set `OBSIDIAN_BINARY`; a binary started that way opens in front.
 
 Add a test to `tests/e2e/plugin.test.mjs` for any change in behavior. The `page` object can run code inside Obsidian with `evaluate` and `waitFor`, send real input with `drag`, and save a `screenshot`.
 
