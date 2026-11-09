@@ -10,7 +10,8 @@ before(
 		obsidian = await launchObsidian();
 		page = obsidian.page;
 	},
-	{ timeout: 60000 }
+	// launchObsidian waits up to 20 s for each of its four startup steps.
+	{ timeout: 120000 }
 );
 
 after(async () => {
@@ -66,8 +67,19 @@ test("renders an embed in a note", async () => {
 test("copies an embed that reproduces the current camera", async () => {
 	await openFile("triangle.glb");
 	await waitForModel();
-	await page.evaluate(`activeViewer().cameraOrbit = "1rad 1rad auto"; activeViewer().jumpCameraToGoal()`);
+	await page.evaluate(`
+		activeViewer().cameraOrbit = "1rad 1rad auto";
+		activeViewer().fieldOfView = "20deg";
+		activeViewer().jumpCameraToGoal();
+	`);
 	await page.waitFor("Math.abs(activeViewer().getCameraOrbit().theta - 1) < 0.01");
+	await page.waitFor("Math.abs(activeViewer().getFieldOfView() - 20) < 0.1");
+	const camera = `(() => {
+		const viewer = activeViewer();
+		const { theta, phi, radius } = viewer.getCameraOrbit();
+		return { theta, phi, radius, target: viewer.getCameraTarget().toString(), fov: viewer.getFieldOfView() };
+	})()`;
+	const expected = await page.evaluate(camera);
 
 	await page.evaluate(`app.commands.executeCommandById("model-viewer:copy-embed-with-current-view")`);
 	const embed = await page.waitFor("window.__clipboard");
@@ -78,6 +90,11 @@ test("copies an embed that reproduces the current camera", async () => {
 	await waitForModel();
 	assert.equal(await page.evaluate(`!!activeViewer().closest(".model-viewer-embed")`), true);
 	await page.waitFor("Math.abs(activeViewer().getCameraOrbit().theta - 1) < 0.01");
+	const actual = await page.evaluate(camera);
+	for (const key of ["theta", "phi", "radius", "fov"]) {
+		assert.ok(Math.abs(actual[key] - expected[key]) < 0.01, `${key}: ${actual[key]} != ${expected[key]}`);
+	}
+	assert.equal(actual.target, expected.target);
 });
 
 test("logs no errors", () => {

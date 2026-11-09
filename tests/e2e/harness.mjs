@@ -17,9 +17,16 @@ async function until(poll, { timeout = 20000, label = "condition" } = {}) {
 	const deadline = Date.now() + timeout;
 	let lastError;
 	for (;;) {
-		const value = await poll().catch((error) => {
-			lastError = error;
+		// A poll that never settles (e.g. a dead connection) still times out.
+		let timer;
+		const timedOut = new Promise((resolve) => {
+			timer = setTimeout(resolve, Math.max(deadline - Date.now(), 0) + 1000);
 		});
+		const value = await Promise.race([poll(), timedOut])
+			.catch((error) => {
+				lastError = error;
+			})
+			.finally(() => clearTimeout(timer));
 		if (value) return value;
 		if (Date.now() > deadline) {
 			throw new Error(`Timed out waiting for ${label}`, { cause: lastError });
@@ -38,11 +45,20 @@ class Page {
 	constructor(socket) {
 		this.socket = socket;
 		socket.onmessage = (event) => this.#onMessage(JSON.parse(event.data));
+		socket.onclose = () => {
+			this.closed = true;
+			for (const { reject } of this.#pending.values()) {
+				reject(new Error("The connection to Obsidian was closed"));
+			}
+			this.#pending.clear();
+		};
 	}
 
 	#onMessage({ id, method, params, result, error }) {
 		if (id != null) {
-			const { resolve, reject } = this.#pending.get(id);
+			const pending = this.#pending.get(id);
+			if (!pending) return;
+			const { resolve, reject } = pending;
 			this.#pending.delete(id);
 			if (error) reject(new Error(error.message));
 			else resolve(result);
@@ -56,6 +72,7 @@ class Page {
 
 	send(method, params = {}) {
 		return new Promise((resolve, reject) => {
+			if (this.closed) throw new Error("The connection to Obsidian was closed");
 			const id = ++this.#id;
 			this.#pending.set(id, { resolve, reject });
 			this.socket.send(JSON.stringify({ id, method, params }));
@@ -122,17 +139,38 @@ export async function launchObsidian() {
 	const child = spawn(binary, [`--user-data-dir=${profileDir}`, "--remote-debugging-port=0"], {
 		stdio: "ignore",
 	});
-	const exited = new Promise((resolve) => child.once("exit", resolve));
+	// A child that fails to spawn emits "error" but never "exit".
+	const exited = new Promise((resolve) => {
+		child.once("exit", resolve);
+		child.once("error", resolve);
+	});
 	const spawned = new Promise((resolve, reject) => {
 		child.once("spawn", resolve);
 		child.once("error", (error) => reject(new Error(`Failed to start ${binary}: ${error.message}`)));
 	});
 
-	const close = async () => {
-		child.kill();
-		await exited;
-		await rm(tempDir, { recursive: true, force: true, maxRetries: 3 });
+	let socket;
+	let closing;
+	const close = () =>
+		(closing ??= (async () => {
+			process.off("SIGINT", onSignal);
+			process.off("SIGTERM", onSignal);
+			socket?.close();
+			if (child.exitCode == null && child.signalCode == null && child.pid != null) {
+				child.kill();
+				const killTimer = setTimeout(() => child.kill("SIGKILL"), 5000);
+				await exited;
+				clearTimeout(killTimer);
+			}
+			await rm(tempDir, { recursive: true, force: true, maxRetries: 3 });
+		})());
+
+	// Cleans up the temporary profile and vault when the run is interrupted.
+	const onSignal = (signal) => {
+		close().finally(() => process.exit(signal === "SIGINT" ? 130 : 143));
 	};
+	process.once("SIGINT", onSignal);
+	process.once("SIGTERM", onSignal);
 
 	try {
 		await spawned;
@@ -149,7 +187,7 @@ export async function launchObsidian() {
 			{ label: "the vault window" }
 		);
 
-		const socket = new WebSocket(target.webSocketDebuggerUrl);
+		socket = new WebSocket(target.webSocketDebuggerUrl);
 		await new Promise((resolve, reject) => {
 			socket.onopen = resolve;
 			socket.onerror = () => reject(new Error("Could not connect to Obsidian"));
