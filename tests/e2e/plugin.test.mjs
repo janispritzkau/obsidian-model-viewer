@@ -118,6 +118,18 @@ for (const name of ["sky.hdr", "Night.HDR"]) {
 	});
 }
 
+test("ignores event handlers and invalid names in embeds", async () => {
+	await page.evaluate(
+		`app.vault.create("Handlers.md", "![[triangle.glb#onclick=window.__ran%3Dtrue&my%20attr=1&exposure=2]]").then(() => {})`
+	);
+	await openFile("Handlers.md");
+	await waitForModel();
+	assert.equal(await page.evaluate(`activeViewer().hasAttribute("onclick")`), false);
+	assert.equal(await page.evaluate(`activeViewer().getAttribute("exposure")`), "2");
+	await page.evaluate(`activeViewer().click()`);
+	assert.equal(await page.evaluate(`window.__ran ?? false`), false);
+});
+
 test("logs no errors", () => {
 	assert.deepEqual(page.errors, []);
 });

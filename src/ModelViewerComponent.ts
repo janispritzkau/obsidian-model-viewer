@@ -9,6 +9,15 @@ const PATH_ATTRIBUTES = new Set([
 	"poster",
 ]);
 
+/**
+ * Attributes come from notes, so event handlers such as onclick would run code from
+ * the note, which Obsidian doesn't allow in HTML either. Invalid names would make
+ * setAttribute throw, so the model wouldn't render at all.
+ */
+export function isAllowedAttribute(name: string) {
+	return /^[a-z][a-z0-9-]*$/i.test(name) && !/^on/i.test(name);
+}
+
 export interface ModelViewerComponentOptions {
 	enableOverlay?: boolean;
 	aspectRatio?: string | null;
@@ -56,6 +65,7 @@ export class ModelViewerComponent extends MarkdownRenderChild {
 
 		const sourcePath = options.sourcePath ?? "";
 		for (const key in options.attributes) {
+			if (!isAllowedAttribute(key)) continue;
 			const raw = options.attributes[key];
 			if (raw == "false") {
 				this.viewerEl.removeAttribute(key);
