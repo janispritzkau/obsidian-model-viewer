@@ -25,7 +25,7 @@ To try the plugin by hand, use a separate test vault and link this repository in
 | `src/ModelViewerEmbed.ts` | `![[model.glb]]` embeds in notes |
 | `src/ModelViewerOverlay.ts` | Overlay for animations and variants |
 | `src/settings.ts`, `src/ModelViewerSettingTab.ts` | Settings and how attributes are parsed |
-| `lib/` | Vendored Draco, Basis and meshopt decoders, embedded in `main.js` and written to the plugin folder at load. After changing them, regenerate `src/extract_libs.js` with `deno run -A scripts/gen_extract_libs.ts`. Files already in an installed plugin's `lib/` aren't overwritten |
+| `lib/` | Vendored Draco, Basis and meshopt decoders, embedded in `main.js` and written to the plugin folder at load. `scripts/extract-libs-plugin.mjs` embeds them at build time, and `npm run dev` rebuilds when they change. Hidden files are skipped. Files already in an installed plugin's `lib/` aren't overwritten |
 | `tests/e2e/` | End-to-end tests and their fixture vault |
 
 ## Things to keep in mind

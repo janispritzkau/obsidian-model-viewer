@@ -130,6 +130,19 @@ test("ignores event handlers and invalid names in embeds", async () => {
 	assert.equal(await page.evaluate(`window.__ran ?? false`), false);
 });
 
+test("writes the decoders into the plugin folder", async () => {
+	const dir = `app.plugins.plugins["model-viewer"].manifest.dir`;
+	for (const file of [
+		"lib/draco/draco_decoder.wasm",
+		"lib/draco/draco_wasm_wrapper.js",
+		"lib/basis/basis_transcoder.wasm",
+		"lib/basis/basis_transcoder.js",
+		"lib/meshopt_decoder.js",
+	]) {
+		await page.waitFor(`app.vault.adapter.exists(${dir} + ${JSON.stringify("/" + file)})`, { label: file });
+	}
+});
+
 test("logs no errors", () => {
 	assert.deepEqual(page.errors, []);
 });

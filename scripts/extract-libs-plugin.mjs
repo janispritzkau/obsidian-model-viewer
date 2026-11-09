@@ -6,13 +6,15 @@ const NAMESPACE = "extract-libs";
 
 /**
  * Walks `dir` depth-first in sorted order, yielding each directory before its contents.
- * Paths are relative to `root` and always use forward slashes.
+ * Paths are relative to `root` and always use forward slashes. Hidden files such as
+ * .DS_Store are skipped, as everything found here ships in main.js.
  */
 async function* walk(root, dir) {
 	yield { path: dir, isDirectory: true };
 	const entries = await readdir(path.join(root, dir), { withFileTypes: true });
 	entries.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
 	for (const entry of entries) {
+		if (entry.name.startsWith(".")) continue;
 		const entryPath = `${dir}/${entry.name}`;
 		if (entry.isDirectory()) {
 			yield* walk(root, entryPath);
@@ -49,14 +51,15 @@ export default function extractLibsPlugin({ libDir = "lib" } = {}) {
 
 				for await (const file of walk(root, libDir)) {
 					const absPath = path.join(root, file.path);
-					js += `if (!(await app.vault.adapter.exists(dirPath + "/${file.path}"))) {\n`;
+					const target = `dirPath + ${JSON.stringify("/" + file.path)}`;
+					js += `if (!(await app.vault.adapter.exists(${target}))) {\n`;
 					if (file.isDirectory) {
 						watchDirs.push(absPath);
-						js += `await app.vault.adapter.mkdir(dirPath + "/${file.path}");\n`;
+						js += `await app.vault.adapter.mkdir(${target});\n`;
 					} else {
 						watchFiles.push(absPath);
 						const base64 = (await readFile(absPath)).toString("base64");
-						js += `await app.vault.adapter.writeBinary(dirPath + "/${file.path}", base64ToArrayBuffer("${base64}"));\n`;
+						js += `await app.vault.adapter.writeBinary(${target}, base64ToArrayBuffer("${base64}"));\n`;
 					}
 					js += `}\n`;
 				}
