@@ -34,5 +34,9 @@
 	"type": "module",
 	"engines": {
 		"node": ">=22.12"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/janispritzkau/obsidian-model-viewer.git"
 	}
 }
