@@ -1,3 +1,23 @@
+# [1.1.0](https://github.com/janispritzkau/obsidian-model-viewer/compare/1.0.5...1.1.0) (2026-11-09)
+
+
+### Bug Fixes
+
+* copy an actual embed from the current file view ([c354355](https://github.com/janispritzkau/obsidian-model-viewer/commit/c354355340e807fd36f2d496528a728aaddbe466))
+* don't double the embed prefix if Obsidian adds it ([da27fff](https://github.com/janispritzkau/obsidian-model-viewer/commit/da27fffbb61fd325a493608bb47f6db206404166))
+* ignore event handlers and invalid names in attributes ([a5ff5bf](https://github.com/janispritzkau/obsidian-model-viewer/commit/a5ff5bf5246bb2ae75adde70f2afb08559a9ff0e))
+* keep the timestamp on HDR URLs and accept uppercase .HDR ([74cb73a](https://github.com/janispritzkau/obsidian-model-viewer/commit/74cb73adb5e2ef685d2addff68aadd897938d437))
+* let vertical swipes over embeds scroll the note ([fc72662](https://github.com/janispritzkau/obsidian-model-viewer/commit/fc72662aa146489c30d447970d81e2754e14d685)), closes [#7](https://github.com/janispritzkau/obsidian-model-viewer/issues/7)
+* load HDR images from the vault ([1bf1fbb](https://github.com/janispritzkau/obsidian-model-viewer/commit/1bf1fbb4ca11753b4d3bdcac4eb2e8fcb906797d))
+* only let pan-x and pan-y scroll the page ([2ce856d](https://github.com/janispritzkau/obsidian-model-viewer/commit/2ce856dedaae291614086d537af0817a7a39456b))
+
+
+### Features
+
+* resolve skybox, environment and poster image in vault ([5be64dd](https://github.com/janispritzkau/obsidian-model-viewer/commit/5be64dd430646002bcea48732225008c3c3cd84f)), closes [#6](https://github.com/janispritzkau/obsidian-model-viewer/issues/6)
+
+
+
 ## [1.0.5](https://github.com/janispritzkau/obsidian-model-viewer/compare/1.0.4...1.0.5) (2025-04-24)
 
 
