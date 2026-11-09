@@ -4,7 +4,7 @@ This guide is for anyone working on the plugin, human or agent.
 
 ## Setup
 
-You need Node 22 or newer and Obsidian.
+You need Node. The end-to-end tests also need Node 22 or newer and Obsidian.
 
 ```sh
 npm install
@@ -25,14 +25,14 @@ To try the plugin by hand, use a separate test vault and link this repository in
 | `src/ModelViewerEmbed.ts` | `![[model.glb]]` embeds in notes |
 | `src/ModelViewerOverlay.ts` | Overlay for animations and variants |
 | `src/settings.ts`, `src/ModelViewerSettingTab.ts` | Settings and how attributes are parsed |
-| `lib/` | Vendored Draco, Basis and meshopt decoders, embedded in `main.js` and written to the plugin folder at load |
+| `lib/` | Vendored Draco, Basis and meshopt decoders, embedded in `main.js` and written to the plugin folder at load. After changing them, regenerate `src/extract_libs.js` with `deno run -A scripts/gen_extract_libs.ts`. Files already in an installed plugin's `lib/` aren't overwritten |
 | `tests/e2e/` | End-to-end tests and their fixture vault |
 
 ## Things to keep in mind
 
 - **Mobile is supported.** `isDesktopOnly` is `false`, so `src/` can't use Node or Electron APIs, and pointer changes should consider touch.
 - **Embeds use a private API.** `app.embedRegistry` isn't part of the public Obsidian types, which is why it has `@ts-expect-error`. Recheck it when updating Obsidian.
-- **Attributes pass straight through.** Settings and embed parameters are set on `<model-viewer>` directly. `"false"` removes an attribute, and values in `PATH_ATTRIBUTES` are resolved as vault paths.
+- **Attributes pass straight through.** Settings and embed parameters are set on `<model-viewer>` directly, except the embed options `aspect`, `height` and `overlay`. `"false"` removes an attribute, and the attributes in `PATH_ATTRIBUTES` (`src/ModelViewerComponent.ts`) are resolved as vault paths unless their value has a URL scheme.
 
 ## Testing
 
@@ -62,4 +62,11 @@ Decisions about user-facing behavior belong to the maintainer, so raise them in 
 
 ## Releases
 
-`npm version <patch|minor|major>` bumps the version, updates `manifest.json`, `versions.json` and `CHANGELOG.md`, and creates the tag. Pushing a tag runs `.github/workflows/release.yml`, which creates a draft GitHub release containing `main.js`, `manifest.json` and `styles.css`.
+```sh
+npm version <patch|minor|major> -m "chore: bump version to %s"
+git push --follow-tags
+```
+
+`npm version` bumps the version in `package.json`, `manifest.json` and `versions.json`, adds the new entries to `CHANGELOG.md`, and commits and tags all of it. Tags have no `v` prefix, as Obsidian requires.
+
+Pushing the tag runs `.github/workflows/release.yml`, which creates a **draft** GitHub release containing `main.js`, `manifest.json` and `styles.css`. Review it and publish it by hand; Obsidian only sees published releases.
