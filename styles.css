@@ -151,12 +151,12 @@
 	bottom: 50%;
 }
 
-.model-viewer-annotation:is(.is-open, .is-hovered, :focus-visible) .model-viewer-annotation-card {
+.model-viewer-annotation:is(.is-open, .is-hovered, :focus-visible, :has(:focus-visible)) .model-viewer-annotation-card {
 	display: block;
 }
 
 /* Connects the ring to the card */
-.model-viewer-annotation:is(.is-open, .is-hovered, :focus-visible)::after {
+.model-viewer-annotation:is(.is-open, .is-hovered, :focus-visible, :has(:focus-visible))::after {
 	content: "";
 	position: absolute;
 	top: 50%;

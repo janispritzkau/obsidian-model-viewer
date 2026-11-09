@@ -558,24 +558,55 @@ for (const [name, state] of [
 
 test("shows an error for invalid code blocks", async () => {
 	const block = (source) => "\`\`\`model-viewer\n" + source + "\n\`\`\`";
+	const cases = [
+		["src: Missing.glb", "File not found: Missing.glb"],
+		["aspect: 16:9", "Missing the src of the model"],
+		["src: [unclosed", /^Invalid YAML/],
+		["src: triangle.glb\nannotations:\n  - text: No position", "Annotation 1 needs a position"],
+		["src: triangle.glb\nonclick: alert(1)", "Event handlers aren't allowed: onclick"],
+		["src: triangle.glb\nmy option: 1", "Invalid option: my option"],
+		["src: triangle.glb\nposter:\n  file: a.png", "poster must be a single value"],
+		["src: triangle.glb\nannotations: none", "annotations must be a list"],
+		["src: triangle.glb\nannotations:\n  -", "Annotation 1 must be a map with a position and text"],
+		[
+			'src: triangle.glb\nannotations:\n  - position: "0m 0m 0m"\n    text:\n      a: 1',
+			"Annotation 1: put the text in quotes",
+		],
+		[
+			'src: triangle.glb\nannotations:\n  - id: a\n    position: "0m 0m 0m"\n  - id: a\n    position: "0m 0m 0m"',
+			"Annotation 2 has the same id as another one: a",
+		],
+	];
+	// One note per case, as reading view doesn't render blocks far below the viewport
+	for (const [index, [source, expected]] of cases.entries()) {
+		const note = `Error ${index + 1}.md`;
+		await page.evaluate(`app.vault.create(${JSON.stringify(note)}, ${JSON.stringify(block(source))}).then(() => {})`);
+		await openFile(note);
+		const error = await page.waitFor(
+			`document.querySelector(".workspace-leaf.mod-active .markdown-preview-view .model-viewer-error")?.textContent`
+		);
+		if (expected instanceof RegExp) assert.match(error, expected);
+		else assert.equal(error, expected);
+	}
+});
+
+test("accepts unquoted wikilinks in code blocks", async () => {
 	const content = [
-		block("src: Missing.glb"),
-		block("aspect: 16:9"),
-		block("src: [unclosed"),
-		block("src: triangle.glb\nannotations:\n  - text: No position"),
-	].join("\n\n");
-	await page.evaluate(`app.vault.create("Errors.md", ${JSON.stringify(content)}).then(() => {})`);
-	await openFile("Errors.md");
-	await page.waitFor(
-		`document.querySelectorAll(".workspace-leaf.mod-active .markdown-preview-view .model-viewer-error").length === 4`
+		"```model-viewer",
+		"src: [[triangle.glb]]",
+		"annotations:",
+		'  - position: "0m 0m 0m"',
+		"    text: [[Embed]]",
+		"```",
+	].join("\n");
+	await page.evaluate(`app.vault.create("Unquoted.md", ${JSON.stringify(content)}).then(() => {})`);
+	await openFile("Unquoted.md");
+	await waitForModel();
+	await page.waitFor(`!!activeViewer().querySelector(".model-viewer-annotation-card a.internal-link")`);
+	assert.equal(
+		await page.evaluate(`activeViewer().querySelector(".model-viewer-annotation-card a").dataset.href`),
+		"Embed"
 	);
-	const errors = await page.evaluate(`[...document.querySelectorAll(
-		".workspace-leaf.mod-active .markdown-preview-view .model-viewer-error"
-	)].map((error) => error.textContent)`);
-	assert.equal(errors[0], "File not found: Missing.glb");
-	assert.equal(errors[1], "Missing the src of the model");
-	assert.match(errors[2], /^Invalid YAML/);
-	assert.equal(errors[3], "Annotation 1 needs a position");
 });
 
 test("logs no errors", () => {
