@@ -13,10 +13,11 @@ export function createEmbedLink(
 		"",
 		"#" +
 			new URLSearchParams({
+				...attributes,
+				// The viewer's camera wins over typed values, since that's what the user framed
 				"camera-orbit": viewer.getCameraOrbit().toString(),
 				"camera-target": viewer.getCameraTarget().toString(),
 				"field-of-view": viewer.getFieldOfView().toString() + "deg",
-				...attributes,
 			}).toString()
 	);
 	// generateMarkdownLink only produces a plain link for glb/gltf files

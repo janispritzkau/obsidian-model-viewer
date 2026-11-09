@@ -459,6 +459,21 @@ test("customizes an embed with a live preview", async () => {
 	await page.waitFor("Math.abs(activeViewer().getCameraOrbit().theta - 1) < 0.01");
 });
 
+test("keeps special characters in embed attributes", async () => {
+	// Encoded like createEmbedLink does, with URLSearchParams
+	const alt = "A & B + 50% = ?";
+	const params = new URLSearchParams({ alt }).toString();
+	for (const [note, embed] of [
+		["Wikilink.md", `![[triangle.glb#${params}]]`],
+		["Markdown link.md", `![](triangle.glb#${params})`],
+	]) {
+		await page.evaluate(`app.vault.create(${JSON.stringify(note)}, ${JSON.stringify(embed)}).then(() => {})`);
+		await openFile(note);
+		await waitForModel();
+		assert.equal(await page.evaluate(`activeViewer().getAttribute("alt")`), alt, note);
+	}
+});
+
 test("logs no errors", () => {
 	assert.deepEqual(page.errors, []);
 });
