@@ -1,3 +1,10 @@
+## [1.1.2](https://github.com/janispritzkau/obsidian-model-viewer/compare/1.1.1...1.1.2) (2026-11-09)
+
+### Bug Fixes
+
+* keep the variant selector above the navigation bar on phones ([a60685d](https://github.com/janispritzkau/obsidian-model-viewer/commit/a60685d95ae4d7dee291024220666ecb8c2eb10b))
+* reload models that were removed from the page and added back ([d5a64c4](https://github.com/janispritzkau/obsidian-model-viewer/commit/d5a64c4fb17c2aff6806b0af3c92fb3c69f00f4c))
+
 ## [1.1.1](https://github.com/janispritzkau/obsidian-model-viewer/compare/1.1.0...1.1.1) (2026-11-09)
 
 ### Bug Fixes
