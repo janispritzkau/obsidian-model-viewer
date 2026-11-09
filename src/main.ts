@@ -83,7 +83,8 @@ export default class ModelViewerPlugin extends Plugin {
 							}).toString()
 					);
 					// generateMarkdownLink only produces a plain link for glb/gltf files
-					navigator.clipboard.writeText("!" + link).then(() => {
+					const embed = link.startsWith("!") ? link : "!" + link;
+					navigator.clipboard.writeText(embed).then(() => {
 						new Notice("Copied to your clipboard");
 					});
 				}
