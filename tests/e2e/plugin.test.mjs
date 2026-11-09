@@ -97,22 +97,26 @@ test("copies an embed that reproduces the current camera", async () => {
 	assert.equal(actual.target, expected.target);
 });
 
-test("loads HDR images from the vault", async () => {
-	// A 1x1 Radiance image, which model-viewer only decodes if the URL ends in .hdr
-	await page.evaluate(`app.vault.createBinary(
-		"sky.hdr",
-		Uint8Array.from([
-			...new TextEncoder().encode("#?RADIANCE\\nFORMAT=32-bit_rle_rgbe\\n\\n-Y 1 +X 1\\n"),
-			128, 128, 128, 129,
-		]).buffer
-	).then(() => {})`);
-	await page.evaluate(
-		`app.vault.create("Sky.md", "![[triangle.glb#skybox-image=sky.hdr]]").then(() => {})`
-	);
-	await openFile("Sky.md");
-	await waitForModel();
-	assert.match(await page.evaluate(`activeViewer().getAttribute("skybox-image")`), /\.hdr$/);
-});
+for (const name of ["sky.hdr", "Night.HDR"]) {
+	test(`loads HDR images from the vault (${name})`, async () => {
+		// A 1x1 Radiance image, which model-viewer only decodes if the URL ends in .hdr
+		await page.evaluate(`app.vault.createBinary(
+			${JSON.stringify(name)},
+			Uint8Array.from([
+				...new TextEncoder().encode("#?RADIANCE\\nFORMAT=32-bit_rle_rgbe\\n\\n-Y 1 +X 1\\n"),
+				128, 128, 128, 129,
+			]).buffer
+		).then(() => {})`);
+		const note = `${name}.md`;
+		await page.evaluate(
+			`app.vault.create(${JSON.stringify(note)}, "![[triangle.glb#skybox-image=${name}]]").then(() => {})`
+		);
+		await openFile(note);
+		await waitForModel();
+		const url = await page.evaluate(`activeViewer().getAttribute("skybox-image")`);
+		assert.match(url, /\?\d+#\.hdr$/);
+	});
+}
 
 test("logs no errors", () => {
 	assert.deepEqual(page.errors, []);

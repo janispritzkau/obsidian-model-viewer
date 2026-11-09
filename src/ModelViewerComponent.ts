@@ -79,7 +79,9 @@ export class ModelViewerComponent extends MarkdownRenderChild {
 		const file = this.app.metadataCache.getFirstLinkpathDest(value, sourcePath);
 		if (file == null) return value;
 		const url = this.app.vault.getResourcePath(file);
-		// model-viewer detects HDR images by the end of the URL, which excludes query strings
-		return file.extension == "hdr" ? url.split("?")[0] : url;
+		// model-viewer only decodes HDR images whose URL ends in a lowercase ".hdr", but
+		// Obsidian appends a timestamp query. A fragment satisfies the check, isn't sent
+		// with the request, and keeps the timestamp that refreshes a replaced file.
+		return file.extension.toLowerCase() == "hdr" ? url + "#.hdr" : url;
 	}
 }
