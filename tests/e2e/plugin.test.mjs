@@ -270,6 +270,74 @@ test("keeps the variant selector above the floating navigation bar on phones", a
 	assert.equal(phone.bottom, desktop.bottom + phone.spacing, values);
 });
 
+/** Counts the pixels of the model, since a viewer whose scene was disposed renders nothing. */
+const renderedPixels = () =>
+	page.evaluate(`new Promise((resolve) => {
+		const image = new Image();
+		image.onload = () => {
+			const canvas = document.createElement("canvas");
+			canvas.width = image.width;
+			canvas.height = image.height;
+			const context = canvas.getContext("2d");
+			context.drawImage(image, 0, 0);
+			const { data } = context.getImageData(0, 0, image.width, image.height);
+			let count = 0;
+			for (let i = 3; i < data.length; i += 4) if (data[i] > 0) count++;
+			resolve(count);
+		};
+		image.src = window.__unloaded.toDataURL();
+	})`);
+
+test("renders an embed again after scrolling unloads it", async () => {
+	const filler = "Filler paragraph.\n\n".repeat(300);
+	await page.evaluate(
+		`app.vault.create("Scrolled.md", ${JSON.stringify(`![[triangle.glb]]\n\n${filler}`)}).then(() => {})`
+	);
+	await openFile("Scrolled.md");
+	await waitForModel();
+	await page.evaluate(`window.__unloaded = activeViewer(); void 0`);
+	assert.ok((await renderedPixels()) > 0);
+
+	// Reading view removes sections far outside the viewport from the document.
+	const scroller = `document.querySelector(".workspace-leaf.mod-active .markdown-preview-view")`;
+	await page.waitFor(
+		`(${scroller}.scrollTop = ${scroller}.scrollHeight, !__unloaded.isConnected)`
+	);
+	await new Promise((resolve) => setTimeout(resolve, 200));
+	await page.waitFor(`(${scroller}.scrollTop = 0, __unloaded.isConnected)`);
+
+	await page.waitFor(`__unloaded.loaded && __unloaded.modelIsVisible`);
+	await new Promise((resolve) => setTimeout(resolve, 500));
+	assert.ok((await renderedPixels()) > 0, "the embed is blank");
+});
+
+test("renders an embed again after switching tabs", async () => {
+	await openFile("Embed.md");
+	await waitForModel();
+	await page.evaluate(
+		`window.__unloaded = activeViewer(); window.__embedLeaf = app.workspace.getLeaf(false); void 0`
+	);
+	await openFile("triangle.glb");
+	await waitForModel();
+	await new Promise((resolve) => setTimeout(resolve, 200));
+	await page.evaluate(`app.workspace.setActiveLeaf(__embedLeaf, { focus: true }); void 0`);
+	await page.waitFor(`__unloaded.isConnected && __unloaded.loaded && __unloaded.modelIsVisible`);
+	await new Promise((resolve) => setTimeout(resolve, 500));
+	assert.ok((await renderedPixels()) > 0, "the embed is blank");
+});
+
+test("renders embeds after the plugin is reloaded", async () => {
+	// Custom elements stay defined across reloads, with the previous version's classes
+	await page.evaluate(`(async () => {
+		await app.plugins.disablePlugin("model-viewer");
+		await app.plugins.enablePlugin("model-viewer");
+	})()`);
+	await page.waitFor(`!!app.plugins.plugins["model-viewer"]?._loaded`);
+	await openFile("Embed.md");
+	await waitForModel();
+	assert.deepEqual(page.errors, []);
+});
+
 test("logs no errors", () => {
 	assert.deepEqual(page.errors, []);
 });
