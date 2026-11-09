@@ -40,8 +40,10 @@ export class ModelViewerComponent extends MarkdownRenderChild {
 		this.viewerEl.addEventListener(
 			"touchstart",
 			(e) => {
-				// would also block native scrolling for values like pan-y
-				if (this.viewerEl.touchAction === "none") e.preventDefault();
+				// Only pan-x and pan-y let the browser scroll; <model-viewer> treats any
+				// other value like "none" and rotates the model in every direction.
+				const touchAction = this.viewerEl.touchAction;
+				if (touchAction !== "pan-y" && touchAction !== "pan-x") e.preventDefault();
 				e.stopPropagation();
 			},
 			{ passive: false }

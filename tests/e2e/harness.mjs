@@ -123,18 +123,22 @@ class Page {
 	async swipe(from, to, steps = 12) {
 		await this.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 1 });
 		const touch = (type, touchPoints) => this.send("Input.dispatchTouchEvent", { type, touchPoints });
-		await touch("touchStart", [from]);
-		for (let step = 1; step <= steps; step++) {
-			await touch("touchMove", [
-				{
-					x: from.x + ((to.x - from.x) * step) / steps,
-					y: from.y + ((to.y - from.y) * step) / steps,
-				},
-			]);
-			await sleep(20);
+		try {
+			await touch("touchStart", [from]);
+			for (let step = 1; step <= steps; step++) {
+				await touch("touchMove", [
+					{
+						x: from.x + ((to.x - from.x) * step) / steps,
+						y: from.y + ((to.y - from.y) * step) / steps,
+					},
+				]);
+				await sleep(20);
+			}
+			await touch("touchEnd", []);
+		} finally {
+			// Otherwise later tests would run with touch emulation.
+			await this.send("Emulation.setTouchEmulationEnabled", { enabled: false });
 		}
-		await touch("touchEnd", []);
-		await this.send("Emulation.setTouchEmulationEnabled", { enabled: false });
 	}
 
 	async screenshot(path) {
