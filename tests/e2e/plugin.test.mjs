@@ -236,6 +236,40 @@ test("writes the decoders into the plugin folder", async () => {
 	}
 });
 
+test("keeps the variant selector above the floating navigation bar on phones", async () => {
+	await openFile("triangle.glb");
+	await waitForModel();
+	// triangle.glb has no variants, so this checks the rule on a stand-in element. Desktop
+	// hides the view in the mobile layout, so this compares computed styles, not positions.
+	const styles = (phone) =>
+		page.evaluate(`(() => {
+			const classes = ["is-mobile", "is-phone", "is-floating-nav"];
+			const hadClasses = classes.map((cls) => document.body.hasClass(cls));
+			for (const cls of classes) document.body.toggleClass(cls, ${phone});
+			// Set by Obsidian at runtime on mobile
+			document.body.style.setProperty("--safe-area-inset-bottom", "0px");
+			document.body.style.setProperty("--keyboard-height", "0px");
+			const container = document.querySelector(".workspace-leaf.mod-active .view-content");
+			const dropdown = container.createEl("select", { cls: "model-viewer-variant-dropdown" });
+			const ruler = container.createDiv({ attr: { style: "height: var(--view-bottom-spacing, 0px)" } });
+			const result = {
+				bottom: parseFloat(getComputedStyle(dropdown).bottom),
+				spacing: parseFloat(getComputedStyle(ruler).height),
+			};
+			ruler.remove();
+			dropdown.remove();
+			classes.forEach((cls, index) => document.body.toggleClass(cls, hadClasses[index]));
+			document.body.style.removeProperty("--safe-area-inset-bottom");
+			document.body.style.removeProperty("--keyboard-height");
+			return result;
+		})()`);
+	const desktop = await styles(false);
+	const phone = await styles(true);
+	const values = JSON.stringify({ desktop, phone });
+	assert.ok(phone.spacing > 0, `Obsidian sets --view-bottom-spacing on phones: ${values}`);
+	assert.equal(phone.bottom, desktop.bottom + phone.spacing, values);
+});
+
 test("logs no errors", () => {
 	assert.deepEqual(page.errors, []);
 });
