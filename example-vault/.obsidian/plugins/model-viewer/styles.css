@@ -1,0 +1,169 @@
+.model-viewer-embed {
+	position: relative;
+	border-radius: var(--radius-m);
+	background-color: var(--background-primary-alt);
+	max-width: 100%;
+}
+
+.internal-embed.model-viewer-embed {
+	display: inline-block;
+	width: 100%;
+}
+
+.model-viewer-embed model-viewer {
+	width: 100%;
+	height: auto;
+}
+
+.model-viewer-variant-dropdown {
+	position: absolute;
+	inset: var(--size-4-4);
+	place-self: end start;
+	z-index: 1;
+}
+
+.model-viewer-animation-overlay {
+	position: absolute;
+	inset: var(--size-4-4);
+	place-self: start end;
+	z-index: 1;
+	display: flex;
+	gap: var(--size-4-2);
+}
+
+[data-type="model-viewer-file-view"] .view-content {
+	position: relative;
+}
+
+[data-type="model-viewer-file-view"] model-viewer {
+	position: absolute;
+	inset: 0;
+	width: auto;
+	height: auto;
+}
+
+.model-viewer-play-button {
+	aspect-ratio: 1;
+	padding-inline: 0;
+}
+
+.model-viewer-customize-preview,
+.model-viewer-customize-footer {
+	position: sticky;
+	z-index: 1;
+	background: var(--background-primary);
+}
+
+.model-viewer-customize-preview {
+	top: 0;
+}
+
+.model-viewer-customize-footer {
+	bottom: 0;
+}
+
+.block-language-model-viewer {
+	display: block;
+}
+
+.model-viewer-error {
+	color: var(--text-error);
+}
+
+.model-viewer-annotation {
+	position: relative;
+	width: 28px;
+	height: 28px;
+	cursor: pointer;
+	transition: opacity 0.2s;
+}
+
+.model-viewer-annotation:not([data-visible]) {
+	opacity: 0.25;
+	pointer-events: none;
+}
+
+/* A hollow ring, so that the point it marks stays visible */
+.model-viewer-annotation::before {
+	content: "";
+	position: absolute;
+	inset: 8px;
+	border: 2px solid white;
+	border-radius: 50%;
+	box-shadow:
+		0 0 0 1px rgba(0, 0, 0, 0.6),
+		inset 0 0 0 1px rgba(0, 0, 0, 0.6);
+}
+
+.model-viewer-annotation.is-open::before {
+	border-color: var(--interactive-accent);
+}
+
+.model-viewer-annotation:focus {
+	outline: none;
+}
+
+.model-viewer-annotation:focus-visible::before {
+	box-shadow: 0 0 0 2px var(--background-modifier-border-focus);
+}
+
+.model-viewer-annotation-card {
+	display: none;
+	position: absolute;
+	top: 50%;
+	left: 100%;
+	width: max-content;
+	max-width: min(240px, var(--card-max-width, 240px));
+	max-height: var(--card-max-height);
+	overflow-y: auto;
+	padding: var(--size-4-2) var(--size-4-3);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	background-color: var(--background-primary);
+	font-size: var(--font-ui-small);
+	cursor: auto;
+}
+
+.model-viewer-annotation.mod-left .model-viewer-annotation-card {
+	left: auto;
+	right: 100%;
+}
+
+.model-viewer-annotation.mod-up .model-viewer-annotation-card {
+	top: auto;
+	bottom: 50%;
+}
+
+.model-viewer-annotation:is(.is-open, .is-hovered, :focus-visible) .model-viewer-annotation-card {
+	display: block;
+}
+
+/* Connects the ring to the card */
+.model-viewer-annotation:is(.is-open, .is-hovered, :focus-visible)::after {
+	content: "";
+	position: absolute;
+	top: 50%;
+	left: calc(50% + 6px);
+	width: 8px;
+	height: 1px;
+	background-color: var(--background-modifier-border);
+}
+
+.model-viewer-annotation.mod-left::after {
+	left: auto;
+	right: calc(50% + 6px);
+}
+
+/* Closed annotations only preview the first paragraph */
+.model-viewer-annotation:not(.is-open) .model-viewer-annotation-card > :not(:first-child) {
+	display: none;
+}
+
+.model-viewer-annotation-card > :first-child {
+	margin-top: 0;
+}
+
+.model-viewer-annotation-card > :last-child,
+.model-viewer-annotation:not(.is-open) .model-viewer-annotation-card > :first-child {
+	margin-bottom: 0;
+}

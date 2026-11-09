@@ -20,3 +20,6 @@ data.json
 
 # Exclude macOS Finder (System Explorer) View States
 .DS_Store
+
+# Created if the fixture vault is opened in Obsidian; would break test runs
+tests/e2e/vault/.obsidian/
