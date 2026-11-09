@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -9,6 +9,13 @@ const fixtureVaultDir = join(repoDir, "tests", "e2e", "vault");
 const pluginId = "model-viewer";
 
 const DEFAULT_BINARY = "/Applications/Obsidian.app/Contents/MacOS/Obsidian";
+
+// Keep rendering and timers at full speed while the window is in the background.
+const BACKGROUND_FLAGS = [
+	"--disable-renderer-backgrounding",
+	"--disable-backgrounding-occluded-windows",
+	"--disable-background-timer-throttling",
+];
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -136,18 +143,10 @@ export async function launchObsidian() {
 	);
 
 	const binary = process.env.OBSIDIAN_BINARY ?? DEFAULT_BINARY;
-	const child = spawn(binary, [`--user-data-dir=${profileDir}`, "--remote-debugging-port=0"], {
-		stdio: "ignore",
-	});
-	// A child that fails to spawn emits "error" but never "exit".
-	const exited = new Promise((resolve) => {
-		child.once("exit", resolve);
-		child.once("error", resolve);
-	});
-	const spawned = new Promise((resolve, reject) => {
-		child.once("spawn", resolve);
-		child.once("error", (error) => reject(new Error(`Failed to start ${binary}: ${error.message}`)));
-	});
+	const args = [`--user-data-dir=${profileDir}`, "--remote-debugging-port=0", ...BACKGROUND_FLAGS];
+	const app = process.platform === "darwin" ? binary.match(/^(.+\.app)\/Contents\/MacOS\/[^/]+$/)?.[1] : null;
+	if (app) await writeBackgroundShim(app, profileDir);
+	const { started, stop } = app ? launchInBackground(app, args, profileDir) : launchDirectly(binary, args);
 
 	let socket;
 	let closing;
@@ -156,12 +155,7 @@ export async function launchObsidian() {
 			process.off("SIGINT", onSignal);
 			process.off("SIGTERM", onSignal);
 			socket?.close();
-			if (child.exitCode == null && child.signalCode == null && child.pid != null) {
-				child.kill();
-				const killTimer = setTimeout(() => child.kill("SIGKILL"), 5000);
-				await exited;
-				clearTimeout(killTimer);
-			}
+			await stop();
 			await rm(tempDir, { recursive: true, force: true, maxRetries: 3 });
 		})());
 
@@ -173,7 +167,7 @@ export async function launchObsidian() {
 	process.once("SIGTERM", onSignal);
 
 	try {
-		await spawned;
+		await started;
 
 		const port = await until(
 			async () => (await readFile(join(profileDir, "DevToolsActivePort"), "utf8")).split("\n")[0],
@@ -196,7 +190,8 @@ export async function launchObsidian() {
 		const page = new Page(socket);
 		await page.send("Runtime.enable");
 		await page.send("Page.enable");
-		await page.send("Page.bringToFront");
+		// The window stays in the background, but behaves as if it had focus.
+		await page.send("Emulation.setFocusEmulationEnabled", { enabled: true });
 
 		await page.waitFor("window.app?.workspace?.layoutReady");
 
@@ -227,4 +222,101 @@ export async function launchObsidian() {
 		await close();
 		throw error;
 	}
+}
+
+/** Starts the binary as a child process. On macOS, this brings the window to the front. */
+function launchDirectly(binary, args) {
+	const child = spawn(binary, args, { stdio: "ignore" });
+	// A child that fails to spawn emits "error" but never "exit".
+	const exited = new Promise((resolve) => {
+		child.once("exit", resolve);
+		child.once("error", resolve);
+	});
+	const started = new Promise((resolve, reject) => {
+		child.once("spawn", resolve);
+		child.once("error", (error) => reject(new Error(`Failed to start ${binary}: ${error.message}`)));
+	});
+	const stop = async () => {
+		if (child.exitCode != null || child.signalCode != null || child.pid == null) return;
+		child.kill();
+		const killTimer = setTimeout(() => child.kill("SIGKILL"), 5000);
+		await exited;
+		clearTimeout(killTimer);
+	};
+	return { started, stop };
+}
+
+/**
+ * Starts a macOS app with `open -g`, so it doesn't take focus from whatever you're
+ * working in. Its processes are found by the profile directory, which is unique per run.
+ */
+function launchInBackground(app, args, profileDir) {
+	const run = (command, commandArgs) =>
+		new Promise((resolve) => execFile(command, commandArgs, (error) => resolve(error?.code ?? 0)));
+	const pattern = `--user-data-dir=${profileDir.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`;
+	const running = async () => (await run("pgrep", ["-f", "--", pattern])) === 0;
+
+	const started = run("open", ["-g", "-j", "-n", "-a", app, "--args", ...args]).then((code) => {
+		if (code !== 0) throw new Error(`Failed to start ${app}: open exited with ${code}`);
+	});
+	const stop = async () => {
+		await started.catch(() => {});
+		await run("pkill", ["-f", "--", pattern]);
+		const deadline = Date.now() + 5000;
+		while ((await running()) && Date.now() < deadline) await sleep(100);
+		if (await running()) await run("pkill", ["-KILL", "-f", "--", pattern]);
+	};
+	return { started, stop };
+}
+
+/**
+ * Electron's show() activates the app on macOS, so Obsidian would take focus when its
+ * window opens. Obsidian's loader prefers an `obsidian-<version>.asar` in the profile
+ * directory, which is where its updates go. This puts a small package there that
+ * replaces show() with showInactive() and then starts the bundled app unchanged.
+ */
+async function writeBackgroundShim(app, profileDir) {
+	const version = await new Promise((resolve, reject) =>
+		execFile(
+			"defaults",
+			["read", join(app, "Contents", "Info.plist"), "CFBundleShortVersionString"],
+			(error, stdout) => (error ? reject(error) : resolve(stdout.trim()))
+		)
+	);
+	const bundled = join(app, "Contents", "Resources", "obsidian.asar");
+	const main = `
+		const { BrowserWindow } = require("electron");
+		BrowserWindow.prototype.show = function () {
+			this.showInactive();
+		};
+		const bundled = ${JSON.stringify(bundled)};
+		module.exports = (asarPath, updateEvents) => require(bundled + "/main.js")(bundled, updateEvents);
+	`;
+	await writeAsar(join(profileDir, `obsidian-${version}.asar`), {
+		"main.js": main,
+		"package.json": JSON.stringify({ name: "obsidian", version, main: "main.js" }),
+	});
+}
+
+/** Writes an uncompressed asar archive with the given files at its root. */
+async function writeAsar(path, files) {
+	const entries = {};
+	const contents = [];
+	let offset = 0;
+	for (const [name, text] of Object.entries(files)) {
+		const data = Buffer.from(text);
+		entries[name] = { size: data.length, offset: String(offset) };
+		contents.push(data);
+		offset += data.length;
+	}
+	const json = Buffer.from(JSON.stringify({ files: entries }));
+	const padded = Math.ceil(json.length / 4) * 4;
+	// Two Chromium pickles: one with the header size, then one with the JSON string.
+	const header = Buffer.alloc(16 + padded);
+	header.writeUInt32LE(4, 0);
+	header.writeUInt32LE(8 + padded, 4);
+	header.writeUInt32LE(4 + padded, 8);
+	header.writeUInt32LE(json.length, 12);
+	json.copy(header, 16);
+	await writeFile(path, Buffer.concat([header, ...contents]));
 }
