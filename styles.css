@@ -42,6 +42,11 @@
 	position: relative;
 }
 
+/* On phones, Obsidian's navigation bar floats over the bottom of the view */
+[data-type="model-viewer-file-view"] .model-viewer-variant-dropdown {
+	bottom: calc(var(--size-4-4) + var(--view-bottom-spacing, 0px));
+}
+
 [data-type="model-viewer-file-view"] .model-viewer-element {
 	position: absolute;
 	inset: 0;
