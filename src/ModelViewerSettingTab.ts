@@ -44,7 +44,7 @@ export class ModelViewerSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName("Enable overlay")
-			.setDesc("Show overlay if the model has mulitple variants or animations")
+			.setDesc("Show overlay if the model has multiple variants or animations")
 			.addToggle((toggle) => {
 				toggle.setValue(this.plugin.settings.fileView.enableOverlay);
 				toggle.onChange(async (value) => {
@@ -90,7 +90,7 @@ export class ModelViewerSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName("Enable overlay")
-			.setDesc("Show overlay if the model has mulitple variants or animations")
+			.setDesc("Show overlay if the model has multiple variants or animations")
 			.addToggle((toggle) => {
 				toggle.setValue(this.plugin.settings.embed.enableOverlay);
 				toggle.onChange(async (value) => {
