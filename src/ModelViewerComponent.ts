@@ -44,10 +44,11 @@ class ReattachSentinel extends HTMLElement {
 const SENTINEL_TAG = "model-viewer-reattach-sentinel";
 
 function createReattachSentinel(): ReattachSentinel {
-	// Already defined when the plugin is reloaded; the old class behaves the same.
 	if (!customElements.get(SENTINEL_TAG)) customElements.define(SENTINEL_TAG, ReattachSentinel);
-	// Constructed directly, so it's created in the window that defined it, also for popouts
-	const sentinel = new ReattachSentinel();
+	// After the plugin is reloaded, the tag still belongs to the previous version's class, which
+	// behaves the same. Constructing the registered class keeps it in the window that defined it.
+	const Sentinel = customElements.get(SENTINEL_TAG) as typeof ReattachSentinel;
+	const sentinel = new Sentinel();
 	sentinel.hidden = true;
 	return sentinel;
 }

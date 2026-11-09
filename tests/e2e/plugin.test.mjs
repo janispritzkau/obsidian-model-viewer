@@ -326,6 +326,18 @@ test("renders an embed again after switching tabs", async () => {
 	assert.ok((await renderedPixels()) > 0, "the embed is blank");
 });
 
+test("renders embeds after the plugin is reloaded", async () => {
+	// Custom elements stay defined across reloads, with the previous version's classes
+	await page.evaluate(`(async () => {
+		await app.plugins.disablePlugin("model-viewer");
+		await app.plugins.enablePlugin("model-viewer");
+	})()`);
+	await page.waitFor(`!!app.plugins.plugins["model-viewer"]?._loaded`);
+	await openFile("Embed.md");
+	await waitForModel();
+	assert.deepEqual(page.errors, []);
+});
+
 test("logs no errors", () => {
 	assert.deepEqual(page.errors, []);
 });
