@@ -7,12 +7,19 @@
 
 .internal-embed.model-viewer-embed {
 	display: inline-block;
-	width: 100%;
+	/* From the embed's width, as in ![[model.glb|400]] */
+	width: var(--model-viewer-embed-width, 100%);
 }
 
-.model-viewer-embed model-viewer {
+/* Set by the plugin from the embed's options and the settings */
+.model-viewer-element {
+	aspect-ratio: var(--model-viewer-aspect-ratio, auto);
+	max-height: var(--model-viewer-max-height, none);
+}
+
+.model-viewer-embed .model-viewer-element {
 	width: 100%;
-	height: auto;
+	height: var(--model-viewer-height, auto);
 }
 
 .model-viewer-variant-dropdown {
@@ -35,7 +42,7 @@
 	position: relative;
 }
 
-[data-type="model-viewer-file-view"] model-viewer {
+[data-type="model-viewer-file-view"] .model-viewer-element {
 	position: absolute;
 	inset: 0;
 	width: auto;

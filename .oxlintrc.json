@@ -1,10 +1,26 @@
 {
 	"$schema": "./node_modules/oxlint/configuration_schema.json",
-	"plugins": ["typescript", "unicorn", "oxc", "import"],
-	"categories": { "correctness": "error" },
-	"options": { "typeAware": true },
-	"env": { "browser": true, "es2022": true },
-	"ignorePatterns": ["main.js", "lib/**", "tests/e2e/vault/**"],
+	"plugins": [
+		"typescript",
+		"unicorn",
+		"oxc",
+		"import"
+	],
+	"categories": {
+		"correctness": "error"
+	},
+	"options": {
+		"typeAware": true
+	},
+	"env": {
+		"browser": true,
+		"es2022": true
+	},
+	"ignorePatterns": [
+		"main.js",
+		"lib/**",
+		"tests/e2e/vault/**"
+	],
 	"rules": {
 		"typescript/no-floating-promises": "error",
 		"typescript/no-misused-promises": "error",
@@ -12,7 +28,34 @@
 	},
 	"overrides": [
 		{
-			"files": ["tests/**"],
+			"files": [
+				"src/**"
+			],
+			"rules": {
+				"no-restricted-globals": [
+					"error",
+					{
+						"name": "document",
+						"message": "Use activeDocument, or createEl() and createFragment(), so popout windows work."
+					},
+					{
+						"name": "globalThis",
+						"message": "Use window or activeWindow."
+					}
+				],
+				"no-restricted-properties": [
+					"error",
+					{
+						"property": "style",
+						"message": "Use a CSS class in styles.css, or setCssProps() with a custom property."
+					}
+				]
+			}
+		},
+		{
+			"files": [
+				"tests/**"
+			],
 			"rules": {
 				"typescript/no-floating-promises": "off"
 			}

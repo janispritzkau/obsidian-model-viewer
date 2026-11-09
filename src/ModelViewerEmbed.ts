@@ -80,6 +80,6 @@ export class ModelViewerEmbed extends Component {
 
 	private updateWidth() {
 		const width = this.containerEl.getAttribute("width");
-		this.containerEl.style.width = width ? `${width}px` : "";
+		this.containerEl.setCssProps({ "--model-viewer-embed-width": width ? `${width}px` : "" });
 	}
 }

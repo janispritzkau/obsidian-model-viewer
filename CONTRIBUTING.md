@@ -35,7 +35,8 @@ To try the plugin by hand, use a separate test vault and link this repository in
 ## Things to keep in mind
 
 - **Mobile is supported.** `isDesktopOnly` is `false`, so `src/` can't use Node or Electron APIs, and pointer changes should consider touch.
-- **Embeds use a private API.** `app.embedRegistry` isn't part of the public Obsidian types, which is why it has `@ts-expect-error`. Recheck it when updating Obsidian.
+- **Embeds use a private API.** `app.embedRegistry` isn't part of the public Obsidian types, so `src/main.ts` declares the part it uses. Recheck it when updating Obsidian.
+- **Follow Obsidian's plugin guidelines.** The community directory lints submissions with [`eslint-plugin-obsidianmd`](https://github.com/obsidianmd/eslint-plugin). `npm run lint` covers the rules that came up here: use `activeDocument`, `createEl()` and `createFragment()` instead of `document`, `window` instead of `globalThis`, and CSS classes or `setCssProps()` instead of `element.style`. Style `.model-viewer-element`, not the `model-viewer` tag.
 - **Attributes pass straight through.** Settings and embed parameters are set on `<model-viewer>` directly, except the embed options `aspect`, `height` and `overlay`. `"false"` removes an attribute, and the attributes in `PATH_ATTRIBUTES` (`src/ModelViewerComponent.ts`) are resolved as vault paths unless their value has a URL scheme.
 
 ## Testing

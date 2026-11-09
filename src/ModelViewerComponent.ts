@@ -34,8 +34,7 @@ export class ModelViewerComponent extends MarkdownRenderChild {
 	) {
 		super(containerEl);
 
-		this.viewerEl = document.createElement("model-viewer");
-		containerEl.appendChild(this.viewerEl);
+		this.viewerEl = containerEl.createEl("model-viewer", { cls: "model-viewer-element" });
 
 		this.viewerEl.addEventListener(
 			"touchstart",
@@ -53,18 +52,17 @@ export class ModelViewerComponent extends MarkdownRenderChild {
 			this.addChild(new ModelViewerOverlay(containerEl, this.viewerEl));
 		}
 
+		// Applied by styles.css; a fixed height replaces the max height
+		const size: Record<string, string> = {};
 		if (options.aspectRatio) {
-			this.viewerEl.style.aspectRatio = String(options.aspectRatio).replace(":", "/");
+			size["--model-viewer-aspect-ratio"] = String(options.aspectRatio).replace(":", "/");
 		}
-
-		if (options.maxHeight) {
-			this.viewerEl.style.maxHeight = options.maxHeight + "px";
-		}
-
 		if (options.height) {
-			this.viewerEl.style.height = options.height + "px";
-			this.viewerEl.style.maxHeight = "";
+			size["--model-viewer-height"] = options.height + "px";
+		} else if (options.maxHeight) {
+			size["--model-viewer-max-height"] = options.maxHeight + "px";
 		}
+		this.viewerEl.setCssProps(size);
 
 		const sourcePath = options.sourcePath ?? "";
 		for (const key in options.attributes) {

@@ -15,16 +15,17 @@ export class ModelViewerSettingTab extends PluginSettingTab {
 
 		containerEl.empty();
 
-		const attributesDesc = () => {
-			const fragment = document.createDocumentFragment();
-			fragment.appendText("URL-formatted string of attributes for the model viewer (see ");
-			fragment.createEl("a", {
-				href: "https://modelviewer.dev/docs/index.html",
-				text: "modelviewer.dev/docs/",
+		const attributesDesc = () =>
+			createFragment((fragment) => {
+				fragment.appendText(
+					"URL-formatted string of attributes for the model viewer (see "
+				);
+				fragment.createEl("a", {
+					href: "https://modelviewer.dev/docs/index.html",
+					text: "modelviewer.dev/docs/",
+				});
+				fragment.appendText(")");
 			});
-			fragment.appendText(")");
-			return fragment;
-		};
 
 		// not very user friendly right now, but this is a good start
 		new Setting(containerEl)
