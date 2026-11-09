@@ -74,6 +74,10 @@ annotations:
 
 Annotations appear as small rings on the model. Hovering over one shows the first paragraph of its text, and clicking it shows the full text. The text can use Markdown, including links. The [\<model-viewer\> editor](https://modelviewer.dev/editor/) can help you find positions and normals.
 
+- `src` and a `text` that is only a link can be written as `[[name]]`, with or without quotes. Text with more than a link needs quotes, as YAML would otherwise read the brackets as a list.
+- `src`, `annotations`, `aspect`, `height` and `overlay` are options of the plugin. Every other key is passed to \<model-viewer\> as an attribute, except event handlers such as `onclick`.
+- Each annotation can have an `id`. Without a `normal`, it faces up (`0m 1m 0m`).
+
 #### Using \<model-viewer\> attributes
 
 You can also use any of the attributes supported by the \<model-viewer\> component. To do this, you can use the following syntax:
