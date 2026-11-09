@@ -81,9 +81,10 @@ export default class ModelViewerPlugin extends Plugin {
 				if (activeView?.file != null) {
 					if (checking) return true;
 					const link = createEmbedLink(this.app, activeView.file, activeView.viewerEl);
-					void navigator.clipboard.writeText(link).then(() => {
-						new Notice("Copied to your clipboard");
-					});
+					void navigator.clipboard.writeText(link).then(
+						() => new Notice("Copied to your clipboard"),
+						() => new Notice("Couldn't copy to the clipboard")
+					);
 				}
 				return false;
 			},
