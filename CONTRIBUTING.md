@@ -4,14 +4,18 @@ This guide is for anyone working on the plugin, human or agent.
 
 ## Setup
 
-You need Node. The end-to-end tests also need Node 22 or newer and Obsidian.
+You need Node 22.12 or newer. The end-to-end tests also need Obsidian.
 
 ```sh
 npm install
 npm run build      # typecheck, then write the production main.js
 npm run dev        # rebuild main.js on every change
+npm run lint       # lint with oxlint, including type-aware rules
+npm run format     # format with oxfmt
 npm run test:e2e   # build, then test in real Obsidian
 ```
+
+The build uses [Vite](https://vite.dev) in library mode (`vite.config.ts`) and writes a single CommonJS `main.js` to the repository root. `src/` is typechecked with `tsconfig.json`, and the Node-side config and build plugins with `tsconfig.node.json`.
 
 To try the plugin by hand, use a separate test vault and link this repository into it as `<vault>/.obsidian/plugins/model-viewer`. Then enable the plugin in Community plugins. Don't develop against a vault you care about.
 
@@ -25,7 +29,7 @@ To try the plugin by hand, use a separate test vault and link this repository in
 | `src/ModelViewerEmbed.ts` | `![[model.glb]]` embeds in notes |
 | `src/ModelViewerOverlay.ts` | Overlay for animations and variants |
 | `src/settings.ts`, `src/ModelViewerSettingTab.ts` | Settings and how attributes are parsed |
-| `lib/` | Vendored Draco, Basis and meshopt decoders, embedded in `main.js` and written to the plugin folder at load. After changing them, regenerate `src/extract_libs.js` with `deno run -A scripts/gen_extract_libs.ts`. Files already in an installed plugin's `lib/` aren't overwritten |
+| `lib/` | Vendored Draco, Basis and meshopt decoders, embedded in `main.js` and written to the plugin folder at load. `scripts/vite-plugin-extract-libs.ts` embeds them at build time as the `virtual:extract-libs` module, and `npm run dev` rebuilds when they change. Hidden files are skipped. Files already in an installed plugin's `lib/` aren't overwritten |
 | `tests/e2e/` | End-to-end tests and their fixture vault |
 
 ## Things to keep in mind
@@ -51,7 +55,7 @@ Some behavior of the test setup is easy to trip over:
 
 ## Code style
 
-The code uses tabs and a line width of 100, as set in `.editorconfig` and `.prettierrc`. Match the code around your change.
+The code uses tabs and a line width of 100, as set in `.editorconfig` and `.oxfmtrc.json`. Run `npm run format` before committing; CI checks formatting and runs `npm run lint`.
 
 ## Commits and pull requests
 
@@ -64,6 +68,6 @@ Decisions about user-facing behavior belong to the maintainer, so raise them in 
 
 ## Releases
 
-Releases are made by the **Release** workflow: in the Actions tab, run it on `main` and choose the part of the version to bump. Fixes are a patch, new features minor. Check what `CHANGELOG.md` would get with `npx conventional-changelog -p angular -u`.
+Releases are made by the **Release** workflow: in the Actions tab, run it on `main` and choose the part of the version to bump. Fixes are a patch, new features minor. Check what `CHANGELOG.md` would get with `npx conventional-changelog -p angular -u --stdout`.
 
 The workflow runs the same checks as CI, then `npm version`, which bumps the version in `package.json`, `manifest.json` and `versions.json`, adds the new entries to `CHANGELOG.md`, and commits and tags all of it. Tags have no `v` prefix, as Obsidian requires. It pushes the commit and tag to `main` and publishes a GitHub release with `main.js`, `manifest.json` and `styles.css`, using the new changelog entries as release notes. Obsidian picks up published releases.

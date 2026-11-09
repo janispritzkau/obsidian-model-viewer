@@ -31,8 +31,14 @@ const openFile = (path) =>
 const waitForModel = () => page.waitFor("activeViewer()?.loaded && activeViewer().modelIsVisible");
 
 test("registers the file view for glTF files", async () => {
-	assert.equal(await page.evaluate(`app.viewRegistry.getTypeByExtension("glb")`), "model-viewer-file-view");
-	assert.equal(await page.evaluate(`app.viewRegistry.getTypeByExtension("gltf")`), "model-viewer-file-view");
+	assert.equal(
+		await page.evaluate(`app.viewRegistry.getTypeByExtension("glb")`),
+		"model-viewer-file-view"
+	);
+	assert.equal(
+		await page.evaluate(`app.viewRegistry.getTypeByExtension("gltf")`),
+		"model-viewer-file-view"
+	);
 });
 
 test("renders a model in the file view", async () => {
@@ -44,6 +50,22 @@ test("renders a model in the file view", async () => {
 	);
 	assert.equal(await page.evaluate("String(activeViewer().getDimensions())"), "2m 2m 0m");
 });
+
+for (const [name, decoder] of [
+	["draco", "/lib/draco/"],
+	["meshopt", "/lib/meshopt_decoder.js"],
+]) {
+	test(`renders ${name}-compressed models with the bundled decoder`, async () => {
+		await openFile(`triangle-${name}.glb`);
+		await waitForModel();
+		assert.equal(await page.evaluate("String(activeViewer().getDimensions())"), "2m 2m 0m");
+		assert.ok(
+			page.requests.some((url) => url.includes(decoder)),
+			`${decoder} wasn't requested`
+		);
+		assert.ok(!page.requests.some((url) => url.includes("gstatic.com")));
+	});
+}
 
 test("rotates the camera when dragging the model", async () => {
 	await openFile("triangle.glb");
@@ -81,7 +103,9 @@ test("copies an embed that reproduces the current camera", async () => {
 	})()`;
 	const expected = await page.evaluate(camera);
 
-	await page.evaluate(`app.commands.executeCommandById("model-viewer:copy-embed-with-current-view")`);
+	await page.evaluate(
+		`app.commands.executeCommandById("model-viewer:copy-embed-with-current-view")`
+	);
 	const embed = await page.waitFor("window.__clipboard");
 	assert.match(embed, /^!\[\[triangle\.glb#/);
 
@@ -92,7 +116,10 @@ test("copies an embed that reproduces the current camera", async () => {
 	await page.waitFor("Math.abs(activeViewer().getCameraOrbit().theta - 1) < 0.01");
 	const actual = await page.evaluate(camera);
 	for (const key of ["theta", "phi", "radius", "fov"]) {
-		assert.ok(Math.abs(actual[key] - expected[key]) < 0.01, `${key}: ${actual[key]} != ${expected[key]}`);
+		assert.ok(
+			Math.abs(actual[key] - expected[key]) < 0.01,
+			`${key}: ${actual[key]} != ${expected[key]}`
+		);
 	}
 	assert.equal(actual.target, expected.target);
 });
@@ -154,6 +181,20 @@ test("swiping over an embed scrolls vertically and rotates horizontally", async 
 	point = await center();
 	await page.swipe(point, { x: point.x, y: point.y - 200 });
 	await page.waitFor(`${scrollTop} > 50`, { timeout: 3000 });
+});
+
+test("writes the decoders into the plugin folder", async () => {
+	const dir = `app.plugins.plugins["model-viewer"].manifest.dir`;
+	for (const file of [
+		"lib/draco/draco_decoder.wasm",
+		"lib/draco/draco_wasm_wrapper.js",
+		"lib/basis/basis_transcoder.wasm",
+		"lib/basis/basis_transcoder.js",
+		"lib/meshopt_decoder.js",
+	]) {
+		const path = JSON.stringify("/" + file);
+		await page.waitFor(`app.vault.adapter.exists(${dir} + ${path})`, { label: file });
+	}
 });
 
 test("logs no errors", () => {

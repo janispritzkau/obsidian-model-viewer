@@ -3,11 +3,7 @@ import { type App, MarkdownRenderChild } from "obsidian";
 import { ModelViewerOverlay } from "./ModelViewerOverlay";
 
 /** Attributes whose values are vault-relative file paths that must be resolved to resource URLs. */
-const PATH_ATTRIBUTES = new Set([
-	"skybox-image",
-	"environment-image",
-	"poster",
-]);
+const PATH_ATTRIBUTES = new Set(["skybox-image", "environment-image", "poster"]);
 
 /**
  * Attributes come from notes, so event handlers such as onclick would run code from
@@ -31,7 +27,11 @@ export interface ModelViewerComponentOptions {
 export class ModelViewerComponent extends MarkdownRenderChild {
 	viewerEl: ModelViewerElement;
 
-	constructor(containerEl: HTMLElement, options: ModelViewerComponentOptions = {}, private app?: App) {
+	constructor(
+		containerEl: HTMLElement,
+		options: ModelViewerComponentOptions = {},
+		private app?: App
+	) {
 		super(containerEl);
 
 		this.viewerEl = document.createElement("model-viewer");

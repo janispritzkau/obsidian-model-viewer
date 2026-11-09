@@ -1,0 +1,10 @@
+{
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"target": "ES2022",
+		"lib": ["ES2023"],
+		"types": ["node"],
+		"allowImportingTsExtensions": true
+	},
+	"include": ["vite.config.ts", "scripts"]
+}

@@ -48,6 +48,8 @@ class Page {
 	#pending = new Map();
 	/** Console errors and uncaught exceptions seen since attaching. */
 	errors = [];
+	/** URLs of the requests made since attaching, including app:// ones. */
+	requests = [];
 
 	constructor(socket) {
 		this.socket = socket;
@@ -71,6 +73,8 @@ class Page {
 			else resolve(result);
 		} else if (method === "Runtime.consoleAPICalled" && params.type === "error") {
 			this.errors.push(params.args.map((arg) => arg.value ?? arg.description).join(" "));
+		} else if (method === "Network.requestWillBeSent") {
+			this.requests.push(params.request.url);
 		} else if (method === "Runtime.exceptionThrown") {
 			const { text, exception } = params.exceptionDetails;
 			this.errors.push(`${text} ${exception?.description ?? ""}`);
@@ -122,7 +126,8 @@ class Page {
 	/** Swipes with one finger between two points. */
 	async swipe(from, to, steps = 12) {
 		await this.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 1 });
-		const touch = (type, touchPoints) => this.send("Input.dispatchTouchEvent", { type, touchPoints });
+		const touch = (type, touchPoints) =>
+			this.send("Input.dispatchTouchEvent", { type, touchPoints });
 		try {
 			await touch("touchStart", [from]);
 			for (let step = 1; step <= steps; step++) {
@@ -161,7 +166,9 @@ export async function launchObsidian() {
 	await mkdir(profileDir);
 	await writeFile(
 		join(profileDir, "obsidian.json"),
-		JSON.stringify({ vaults: { "0123456789abcdef": { path: vaultDir, ts: Date.now(), open: true } } })
+		JSON.stringify({
+			vaults: { "0123456789abcdef": { path: vaultDir, ts: Date.now(), open: true } },
+		})
 	);
 
 	const binary = process.env.OBSIDIAN_BINARY ?? DEFAULT_BINARY;
@@ -172,9 +179,14 @@ export async function launchObsidian() {
 		// Extra flags, such as --no-sandbox in CI
 		...(process.env.OBSIDIAN_ARGS?.split(/\s+/).filter(Boolean) ?? []),
 	];
-	const app = process.platform === "darwin" ? binary.match(/^(.+\.app)\/Contents\/MacOS\/[^/]+$/)?.[1] : null;
+	const app =
+		process.platform === "darwin"
+			? binary.match(/^(.+\.app)\/Contents\/MacOS\/[^/]+$/)?.[1]
+			: null;
 	if (app) await writeBackgroundShim(app, profileDir);
-	const { started, stop } = app ? launchInBackground(app, args, profileDir) : launchDirectly(binary, args);
+	const { started, stop } = app
+		? launchInBackground(app, args, profileDir)
+		: launchDirectly(binary, args);
 
 	let socket;
 	let closing;
@@ -198,7 +210,8 @@ export async function launchObsidian() {
 		await started;
 
 		const port = await until(
-			async () => (await readFile(join(profileDir, "DevToolsActivePort"), "utf8")).split("\n")[0],
+			async () =>
+				(await readFile(join(profileDir, "DevToolsActivePort"), "utf8")).split("\n")[0],
 			{ label: "the DevTools port" }
 		);
 		const target = await until(
@@ -217,6 +230,7 @@ export async function launchObsidian() {
 
 		const page = new Page(socket);
 		await page.send("Runtime.enable");
+		await page.send("Network.enable");
 		await page.send("Page.enable");
 		// The window stays in the background, but behaves as if it had focus.
 		await page.send("Emulation.setFocusEmulationEnabled", { enabled: true });
@@ -262,7 +276,9 @@ function launchDirectly(binary, args) {
 	});
 	const started = new Promise((resolve, reject) => {
 		child.once("spawn", resolve);
-		child.once("error", (error) => reject(new Error(`Failed to start ${binary}: ${error.message}`)));
+		child.once("error", (error) =>
+			reject(new Error(`Failed to start ${binary}: ${error.message}`))
+		);
 	});
 	const stop = async () => {
 		if (child.exitCode != null || child.signalCode != null || child.pid == null) return;
@@ -280,7 +296,9 @@ function launchDirectly(binary, args) {
  */
 function launchInBackground(app, args, profileDir) {
 	const run = (command, commandArgs) =>
-		new Promise((resolve) => execFile(command, commandArgs, (error) => resolve(error?.code ?? 0)));
+		new Promise((resolve) =>
+			execFile(command, commandArgs, (error) => resolve(error?.code ?? 0))
+		);
 	const pattern = `--user-data-dir=${profileDir.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`;
 	const running = async () => (await run("pgrep", ["-f", "--", pattern])) === 0;
 
