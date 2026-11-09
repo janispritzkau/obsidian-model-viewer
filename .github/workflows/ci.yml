@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  # A new push to a pull request cancels its previous run
+  group: ci-${{ github.event_name }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  # Bump to test against a newer Obsidian
+  OBSIDIAN_VERSION: 1.15.0
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Typecheck and build
+        run: npm run build
+
+  e2e:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Install a virtual display
+        run: sudo apt-get update && sudo apt-get install -y xvfb
+
+      - name: Cache Obsidian
+        id: cache-obsidian
+        uses: actions/cache@v4
+        with:
+          path: ~/obsidian
+          key: obsidian-${{ env.OBSIDIAN_VERSION }}
+
+      - name: Download Obsidian
+        if: steps.cache-obsidian.outputs.cache-hit != 'true'
+        run: |
+          curl -fsSL -o Obsidian.AppImage \
+            "https://github.com/obsidianmd/obsidian-releases/releases/download/v${OBSIDIAN_VERSION}/Obsidian-${OBSIDIAN_VERSION}.AppImage"
+          chmod +x Obsidian.AppImage
+          # Extracted, as AppImages need FUSE to run
+          ./Obsidian.AppImage --appimage-extract > /dev/null
+          mv squashfs-root ~/obsidian
+
+      - name: Run the end-to-end tests
+        env:
+          OBSIDIAN_BINARY: /home/runner/obsidian/obsidian
+          # The extracted sandbox helper isn't setuid, and there's no GPU for WebGL
+          OBSIDIAN_ARGS: --no-sandbox --enable-unsafe-swiftshader --use-angle=swiftshader
+        run: xvfb-run --auto-servernum --server-args="-screen 0 1600x1000x24" npm run test:e2e

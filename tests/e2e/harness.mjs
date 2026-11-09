@@ -165,7 +165,13 @@ export async function launchObsidian() {
 	);
 
 	const binary = process.env.OBSIDIAN_BINARY ?? DEFAULT_BINARY;
-	const args = [`--user-data-dir=${profileDir}`, "--remote-debugging-port=0", ...BACKGROUND_FLAGS];
+	const args = [
+		`--user-data-dir=${profileDir}`,
+		"--remote-debugging-port=0",
+		...BACKGROUND_FLAGS,
+		// Extra flags, such as --no-sandbox in CI
+		...(process.env.OBSIDIAN_ARGS?.split(/\s+/).filter(Boolean) ?? []),
+	];
 	const app = process.platform === "darwin" ? binary.match(/^(.+\.app)\/Contents\/MacOS\/[^/]+$/)?.[1] : null;
 	if (app) await writeBackgroundShim(app, profileDir);
 	const { started, stop } = app ? launchInBackground(app, args, profileDir) : launchDirectly(binary, args);

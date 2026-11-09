@@ -36,7 +36,9 @@ To try the plugin by hand, use a separate test vault and link this repository in
 
 ## Testing
 
-`npm run test:e2e` starts a separate Obsidian window with a temporary profile and a copy of `tests/e2e/vault`, and deletes both afterwards. Your own Obsidian and vaults aren't touched. On macOS the window stays in the background and doesn't take focus, so you can keep working. If Obsidian isn't at the default macOS path, set `OBSIDIAN_BINARY`; a binary started that way opens in front.
+`npm run test:e2e` starts a separate Obsidian window with a temporary profile and a copy of `tests/e2e/vault`, and deletes both afterwards. Your own Obsidian and vaults aren't touched. On macOS the window stays in the background and doesn't take focus, so you can keep working. If Obsidian isn't at the default macOS path, set `OBSIDIAN_BINARY`; a binary started that way opens in front. Flags in `OBSIDIAN_ARGS` are passed to Obsidian.
+
+CI (`.github/workflows/ci.yml`) builds every pull request and runs the end-to-end tests on Linux, with Obsidian's AppImage on a virtual display and software WebGL. The Obsidian version is pinned there.
 
 Add a test to `tests/e2e/plugin.test.mjs` for any change in behavior. The `page` object can run code inside Obsidian with `evaluate` and `waitFor`, send real input with `drag` and `swipe`, and save a `screenshot`.
 
@@ -62,11 +64,6 @@ Decisions about user-facing behavior belong to the maintainer, so raise them in 
 
 ## Releases
 
-```sh
-npm version <patch|minor|major> -m "chore: bump version to %s"
-git push --follow-tags
-```
+Releases are made by the **Release** workflow: in the Actions tab, run it on `main` and choose the part of the version to bump. Fixes are a patch, new features minor. Check what `CHANGELOG.md` would get with `npx conventional-changelog -p angular -u`.
 
-`npm version` bumps the version in `package.json`, `manifest.json` and `versions.json`, adds the new entries to `CHANGELOG.md`, and commits and tags all of it. Tags have no `v` prefix, as Obsidian requires.
-
-Pushing the tag runs `.github/workflows/release.yml`, which creates a **draft** GitHub release containing `main.js`, `manifest.json` and `styles.css`. Review it and publish it by hand; Obsidian only sees published releases.
+The workflow runs the same checks as CI, then `npm version`, which bumps the version in `package.json`, `manifest.json` and `versions.json`, adds the new entries to `CHANGELOG.md`, and commits and tags all of it. Tags have no `v` prefix, as Obsidian requires. It pushes the commit and tag to `main` and publishes a GitHub release with `main.js`, `manifest.json` and `styles.css`, using the new changelog entries as release notes. Obsidian picks up published releases.

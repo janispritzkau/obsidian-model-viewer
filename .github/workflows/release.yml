@@ -1,35 +1,63 @@
-name: Release Obsidian plugin
+name: Release
 
 on:
-  push:
-    tags:
-      - "*"
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Which part of the version to bump. Fixes are a patch, new features minor.
+        type: choice
+        options: [patch, minor, major]
+        default: patch
+
+concurrency:
+  group: release
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  test:
+    uses: ./.github/workflows/ci.yml
+
+  release:
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v3
-
-      - name: Use Node.js
-        uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
         with:
-          node-version: "18.x"
+          # The changelog compares against the previous tag
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
 
-      - name: Build plugin
+      - name: Bump the version
+        id: version
         run: |
-          npm install
-          npm run build
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Updates manifest.json, versions.json and CHANGELOG.md, then commits and tags
+          npm version "${{ inputs.bump }}" -m "chore: release %s"
+          echo "tag=$(node -p 'require("./package.json").version')" >> "$GITHUB_OUTPUT"
 
-      - name: Create release
+      - name: Build
+        run: npm run build
+
+      - name: Write the release notes
+        # The newest section of the changelog, without its heading
+        run: awk '/^#{1,2} \[?[0-9]/ { if (found++) exit; next } found' CHANGELOG.md > notes.md
+
+      - name: Push the release commit and tag
+        run: git push --atomic origin HEAD:main "refs/tags/${{ steps.version.outputs.tag }}"
+
+      - name: Publish the release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          tag="${GITHUB_REF#refs/tags/}"
-
-          gh release create "$tag" \
-            --title="$tag" \
-            --draft \
+          gh release create "${{ steps.version.outputs.tag }}" \
+            --title "${{ steps.version.outputs.tag }}" \
+            --notes-file notes.md \
+            --verify-tag \
             main.js manifest.json styles.css
