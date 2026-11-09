@@ -145,6 +145,35 @@ for (const name of ["sky.hdr", "Night.HDR"]) {
 	});
 }
 
+test("sizes embeds from their options and the settings", async () => {
+	const size = async (embed) => {
+		const note = `Size ${embed.replace(/\W+/g, " ")}.md`;
+		await page.evaluate(
+			`app.vault.create(${JSON.stringify(note)}, ${JSON.stringify(`![[${embed}]]`)}).then(() => {})`
+		);
+		await openFile(note);
+		await waitForModel();
+		return page.evaluate(`(() => {
+			const { width, height } = activeViewer().getBoundingClientRect();
+			return { width: Math.round(width), height: Math.round(height) };
+		})()`);
+	};
+
+	// The default aspect ratio is 1:1, up to a height of 600px
+	const square = await size("triangle.glb");
+	assert.ok(square.width > 0);
+	assert.equal(square.height, Math.min(square.width, 600));
+
+	const wide = await size("triangle.glb#aspect=2:1");
+	assert.equal(wide.height, Math.round(wide.width / 2));
+
+	// A fixed height replaces the maximum
+	const tall = await size("triangle.glb#height=700");
+	assert.equal(tall.height, 700);
+
+	assert.deepEqual(await size("triangle.glb|300"), { width: 300, height: 300 });
+});
+
 test("ignores event handlers and invalid names in embeds", async () => {
 	await page.evaluate(
 		`app.vault.create("Handlers.md", "![[triangle.glb#onclick=window.__ran%3Dtrue&my%20attr=1&exposure=2]]").then(() => {})`

@@ -1,9 +1,26 @@
-import { normalizePath, Notice, Plugin, type TFile } from "obsidian";
+import { type App, type Component, normalizePath, Notice, Plugin, type TFile } from "obsidian";
 import extractLibs from "virtual:extract-libs";
 import { ModelViewerEmbed } from "./ModelViewerEmbed";
 import { ModelViewerFileView } from "./ModelViewerFileView";
 import { ModelViewerSettingTab } from "./ModelViewerSettingTab";
 import { DEFAULT_SETTINGS, type ModelViewerSettings } from "./settings";
+
+interface EmbedContext {
+	containerEl: HTMLElement;
+	linktext?: string;
+	showInline?: boolean;
+}
+
+/** Obsidian's registry of embed types, which isn't part of the public API. */
+interface EmbedRegistry {
+	registerExtensions(
+		extensions: string[],
+		create: (context: EmbedContext, file: TFile) => Component
+	): void;
+	unregisterExtensions(extensions: string[]): void;
+}
+
+const embedRegistry = (app: App) => (app as App & { embedRegistry: EmbedRegistry }).embedRegistry;
 
 export default class ModelViewerPlugin extends Plugin {
 	settings: ModelViewerSettings = DEFAULT_SETTINGS;
@@ -19,13 +36,13 @@ export default class ModelViewerPlugin extends Plugin {
 		const url = new URL(this.app.vault.adapter.getResourcePath(pluginDir));
 		url.search = "";
 
-		Object.assign(globalThis, {
-			ModelViewerElement: {
-				dracoDecoderLocation: url.href + "/lib/draco/",
-				ktx2TranscoderLocation: url.href + "/lib/basis/",
-				meshoptDecoderLocation: url.href + "/lib/meshopt_decoder.js",
-			},
-		});
+		// Every <model-viewer> reads these when it's created, so setting the locations on the
+		// class isn't enough. model-viewer runs in the main window, even for popouts.
+		window.ModelViewerElement = {
+			dracoDecoderLocation: url.href + "/lib/draco/",
+			ktx2TranscoderLocation: url.href + "/lib/basis/",
+			meshoptDecoderLocation: url.href + "/lib/meshopt_decoder.js",
+		};
 
 		await this.loadSettings();
 
@@ -37,29 +54,22 @@ export default class ModelViewerPlugin extends Plugin {
 
 		this.registerExtensions(["glb", "gltf"], "model-viewer-file-view");
 
-		// @ts-expect-error
-		this.app.embedRegistry.registerExtensions(
-			["gltf", "glb"],
-			(
-				context: { containerEl: HTMLElement; linktext?: string; showInline?: boolean },
-				file: TFile
-			) => {
-				let params: URLSearchParams;
-				try {
-					params = new URLSearchParams(context.linktext?.match(/#(.+)$/)?.[1]);
-				} catch {
-					params = new URLSearchParams();
-				}
-
-				return new ModelViewerEmbed(
-					this.app,
-					context.containerEl,
-					file,
-					this.settings,
-					Object.fromEntries(params.entries())
-				);
+		embedRegistry(this.app).registerExtensions(["gltf", "glb"], (context, file) => {
+			let params: URLSearchParams;
+			try {
+				params = new URLSearchParams(context.linktext?.match(/#(.+)$/)?.[1]);
+			} catch {
+				params = new URLSearchParams();
 			}
-		);
+
+			return new ModelViewerEmbed(
+				this.app,
+				context.containerEl,
+				file,
+				this.settings,
+				Object.fromEntries(params.entries())
+			);
+		});
 
 		this.addCommand({
 			id: "copy-embed-with-current-view",
@@ -94,16 +104,17 @@ export default class ModelViewerPlugin extends Plugin {
 	}
 
 	onunload() {
-		// @ts-expect-error
-		this.app.embedRegistry.unregisterExtensions(["gltf", "glb"]);
+		embedRegistry(this.app).unregisterExtensions(["gltf", "glb"]);
 	}
 
 	async loadSettings() {
-		const data = await this.loadData();
-		for (const key in data) {
-			// @ts-expect-error
-			this.settings[key] = Object.assign({}, this.settings[key], data[key]);
-		}
+		const data = ((await this.loadData()) ?? {}) as Partial<ModelViewerSettings>;
+		// Copies, so changing the settings doesn't change the defaults
+		this.settings = {
+			modelViewer: { ...DEFAULT_SETTINGS.modelViewer, ...data.modelViewer },
+			fileView: { ...DEFAULT_SETTINGS.fileView, ...data.fileView },
+			embed: { ...DEFAULT_SETTINGS.embed, ...data.embed },
+		};
 	}
 
 	async saveSettings() {

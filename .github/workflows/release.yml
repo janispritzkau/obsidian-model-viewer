@@ -22,6 +22,9 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       contents: write
+      # For the build provenance attestation
+      id-token: write
+      attestations: write
     steps:
       - uses: actions/checkout@v7
         with:
@@ -44,6 +47,13 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Attest build provenance
+        uses: actions/attest@v4
+        with:
+          subject-path: |
+            main.js
+            styles.css
 
       - name: Write the release notes
         # The newest section of the changelog, without its heading

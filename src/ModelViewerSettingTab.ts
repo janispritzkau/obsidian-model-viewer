@@ -15,16 +15,17 @@ export class ModelViewerSettingTab extends PluginSettingTab {
 
 		containerEl.empty();
 
-		const attributesDesc = () => {
-			const fragment = document.createDocumentFragment();
-			fragment.appendText("URL-formatted string of attributes for the model viewer (see ");
-			fragment.createEl("a", {
-				href: "https://modelviewer.dev/docs/index.html",
-				text: "modelviewer.dev/docs/",
+		const attributesDesc = () =>
+			createFragment((fragment) => {
+				fragment.appendText(
+					"URL-formatted string of attributes for the model viewer (see "
+				);
+				fragment.createEl("a", {
+					href: "https://modelviewer.dev/docs/index.html",
+					text: "modelviewer.dev/docs/",
+				});
+				fragment.appendText(")");
 			});
-			fragment.appendText(")");
-			return fragment;
-		};
 
 		// not very user friendly right now, but this is a good start
 		new Setting(containerEl)
@@ -43,7 +44,7 @@ export class ModelViewerSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName("Enable overlay")
-			.setDesc("Show overlay if the model has mulitple variants or animations")
+			.setDesc("Show overlay if the model has multiple variants or animations")
 			.addToggle((toggle) => {
 				toggle.setValue(this.plugin.settings.fileView.enableOverlay);
 				toggle.onChange(async (value) => {
@@ -89,7 +90,7 @@ export class ModelViewerSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName("Enable overlay")
-			.setDesc("Show overlay if the model has mulitple variants or animations")
+			.setDesc("Show overlay if the model has multiple variants or animations")
 			.addToggle((toggle) => {
 				toggle.setValue(this.plugin.settings.embed.enableOverlay);
 				toggle.onChange(async (value) => {
