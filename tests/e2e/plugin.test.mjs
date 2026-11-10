@@ -236,6 +236,38 @@ test("writes the decoders into the plugin folder", async () => {
 	}
 });
 
+test("replaces decoders written by an older version of the plugin", async () => {
+	const dir = `app.plugins.plugins["model-viewer"].manifest.dir`;
+	const file = `${dir} + "/lib/draco/draco_wasm_wrapper.js"`;
+	const outdated = "// outdated";
+	await page.evaluate(`(async () => {
+		await app.vault.adapter.write(${file}, ${JSON.stringify(outdated)});
+		await app.vault.adapter.write(${dir} + "/lib/.version", "outdated");
+	})()`);
+	await page.evaluate(`(async () => {
+		await app.plugins.disablePlugin("model-viewer");
+		await app.plugins.enablePlugin("model-viewer");
+	})()`);
+	await page.waitFor(`!!app.plugins.plugins["model-viewer"]?._loaded`);
+	const content = await page.evaluate(`app.vault.adapter.read(${file})`);
+	assert.notEqual(content, outdated);
+	assert.match(content, /DracoDecoderModule/);
+	assert.notEqual(
+		await page.evaluate(`app.vault.adapter.read(${dir} + "/lib/.version")`),
+		"outdated"
+	);
+
+	// Files the current version wrote are kept, so a restart doesn't write them again
+	const mtime = `app.vault.adapter.stat(${file}).then((stat) => stat.mtime)`;
+	const before = await page.evaluate(mtime);
+	await page.evaluate(`(async () => {
+		await app.plugins.disablePlugin("model-viewer");
+		await app.plugins.enablePlugin("model-viewer");
+	})()`);
+	await page.waitFor(`!!app.plugins.plugins["model-viewer"]?._loaded`);
+	assert.equal(await page.evaluate(mtime), before);
+});
+
 test("keeps the variant selector above the floating navigation bar on phones", async () => {
 	await openFile("triangle.glb");
 	await waitForModel();
