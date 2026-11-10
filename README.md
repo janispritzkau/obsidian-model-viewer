@@ -74,12 +74,13 @@ The plugin doesn't collect data or contact any server on its own. It fetches onl
 
 | File | What it decodes | Source |
 | --- | --- | --- |
-| `lib/draco/draco_decoder.wasm`, `draco_wasm_wrapper.js` | Draco-compressed meshes | [Draco](https://github.com/google/draco) 1.5.7 |
-| `lib/basis/basis_transcoder.wasm`, `basis_transcoder.js` | KTX2/Basis Universal textures | [Basis Universal](https://github.com/BinomialLLC/basis_universal), as shipped with three.js r169 |
-| `lib/meshopt_decoder.js` (WebAssembly inlined) | meshopt-compressed meshes | [meshoptimizer](https://github.com/zeux/meshoptimizer) 0.23 |
+| `lib/draco/draco_decoder.wasm`, `draco_wasm_wrapper.js` | Draco-compressed meshes | [Draco](https://github.com/google/draco) 1.5.9 |
+| `lib/basis/basis_transcoder.wasm`, `basis_transcoder.js` | KTX2/Basis Universal textures | [Basis Universal](https://github.com/BinomialLLC/basis_universal), as shipped with three.js r183 |
+
+meshopt-compressed meshes are decoded by the [meshoptimizer](https://github.com/zeux/meshoptimizer) decoder that three.js includes in `main.js`. \<model-viewer\> still loads a script before it uses that decoder, so `lib/meshopt_decoder.js` is a placeholder without code.
 
 Automated scans of `main.js` may also report the following. They come from \<model-viewer\> and three.js:
 
 - **www.gstatic.com and cdn.jsdelivr.net**: \<model-viewer\>'s default decoder and Lottie loader locations. The plugin replaces the decoder locations with the local files above. The Lottie loader is only used by \<model-viewer\>'s JavaScript API, not by embeds.
-- **Script elements**: \<model-viewer\> adds a script element to load the meshopt decoder above, and a JSON-LD element for structured data if the `generate-schema` attribute is set.
+- **Script elements**: \<model-viewer\> adds a script element to load `lib/meshopt_decoder.js`, and a JSON-LD element for structured data if the `generate-schema` attribute is set.
 - **Clipboard**: the *Copy embed with current view* command writes the embed to the clipboard.

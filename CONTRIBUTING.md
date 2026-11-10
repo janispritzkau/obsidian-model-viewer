@@ -29,7 +29,7 @@ To try the plugin by hand, use a separate test vault and link this repository in
 | `src/ModelViewerEmbed.ts` | `![[model.glb]]` embeds in notes |
 | `src/ModelViewerOverlay.ts` | Overlay for animations and variants |
 | `src/settings.ts`, `src/ModelViewerSettingTab.ts` | Settings and how attributes are parsed |
-| `lib/` | Vendored Draco, Basis and meshopt decoders, embedded in `main.js` and written to the plugin folder at load. `scripts/vite-plugin-extract-libs.ts` embeds them at build time as the `virtual:extract-libs` module, and `npm run dev` rebuilds when they change. Hidden files are skipped. Files already in an installed plugin's `lib/` aren't overwritten |
+| `lib/` | Vendored Draco, Basis and meshopt decoders, embedded in `main.js` and written to the plugin folder at load. `scripts/vite-plugin-extract-libs.ts` embeds them at build time as the `virtual:extract-libs` module, and `npm run dev` rebuilds when they change. Hidden files are skipped. The plugin rewrites an installed plugin's `lib/` when the bundled files change, which it tracks with a hash in `lib/.version`. Draco comes from `https://www.gstatic.com/draco/versioned/decoders/<version>/`. Basis must match the three.js that `@google/model-viewer` uses, so copy it from `node_modules/three/examples/jsm/libs/basis/`. Update the table in the README with them |
 | `tests/e2e/` | End-to-end tests and their fixture vault |
 
 ## Things to keep in mind
