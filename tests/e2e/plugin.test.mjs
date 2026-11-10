@@ -484,7 +484,7 @@ test("renders a code block with options and an annotation", async () => {
 
 	assert.equal(await page.evaluate(`activeViewer().getAttribute("exposure")`), "1.5");
 	assert.equal(await page.evaluate(`activeViewer().hasAttribute("camera-controls")`), false);
-	assert.equal(await page.evaluate(`activeViewer().style.aspectRatio`), "16 / 9");
+	assert.equal(await page.evaluate(`getComputedStyle(activeViewer()).aspectRatio`), "16 / 9");
 	assert.equal(
 		await page.evaluate(`activeViewer().querySelectorAll(".model-viewer-annotation").length`),
 		2
