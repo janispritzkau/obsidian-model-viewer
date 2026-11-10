@@ -350,6 +350,49 @@ const openSettings = async () => {
 	await new Promise((resolve) => setTimeout(resolve, 300));
 };
 
+test("finds the settings and the attributes they edit in the settings search", async () => {
+	const search = (query) =>
+		page.evaluate(`(async () => {
+			const search = app.setting.searchComponent;
+			search.setValue(${JSON.stringify(query)});
+			search.inputEl.dispatchEvent(new Event("input"));
+			await new Promise((resolve) => setTimeout(resolve, 300));
+			const group = [...app.setting.searchResultsEl.querySelectorAll(".setting-search-result-group")]
+				.find((el) => el.querySelector(".setting-search-result-tab-label")?.textContent === "Model Viewer");
+			return [...(group?.querySelectorAll(".setting-search-result-item") ?? [])].map((el) => el.textContent);
+		})()`);
+
+	await openSettings();
+	try {
+		assert.deepEqual(await search("max height"), ["Max height"]);
+		// Attributes are found by their label and their name, where they can be set
+		const everywhere = ["Default attributes", "File view attributes", "Embed attributes"];
+		assert.deepEqual(await search("exposure"), everywhere);
+		assert.deepEqual(await search("auto-rotate"), everywhere);
+		assert.deepEqual(await search("touch action"), ["Embed attributes"]);
+	} finally {
+		await page.evaluate(
+			`app.setting.searchComponent.setValue(""); app.setting.close(); void 0`
+		);
+	}
+});
+
+test("renders the same settings by hand for Obsidian before 1.13", async () => {
+	const names = () =>
+		page.evaluate(`[...app.setting.activeTab.containerEl.querySelectorAll(".setting-item-name")]
+			.map((el) => el.textContent)`);
+	await openSettings();
+	try {
+		const declarative = await names();
+		// Older versions don't know getSettingDefinitions() and call display() instead
+		await page.evaluate(`app.setting.activeTab.display()`);
+		assert.deepEqual(await names(), declarative);
+		assert.ok(declarative.includes("Max height"), JSON.stringify(declarative));
+	} finally {
+		await page.evaluate(`app.setting.close(); void 0`);
+	}
+});
+
 test("edits attributes in the settings and applies them to new embeds", async () => {
 	const settings = `app.plugins.plugins["model-viewer"].settings.embed.attributes`;
 	// Settings have their own window in recent versions of Obsidian
