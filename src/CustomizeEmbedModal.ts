@@ -49,8 +49,9 @@ export class CustomizeEmbedModal extends Modal {
 		// Scales the preview down instead of cropping it, so it frames like the embed
 		const [width, height] = (this.settings.embed.aspectRatio ?? "1:1").split(":").map(Number);
 		if (width > 0 && height > 0) {
-			this.preview.viewerEl.style.maxWidth = `${(PREVIEW_MAX_HEIGHT * width) / height}px`;
-			this.preview.viewerEl.style.marginInline = "auto";
+			this.preview.viewerEl.setCssProps({
+				"--model-viewer-preview-max-width": `${(PREVIEW_MAX_HEIGHT * width) / height}px`,
+			});
 		}
 		this.preview.load();
 		this.preview.viewerEl.src = this.app.vault.getResourcePath(this.file);
@@ -82,7 +83,7 @@ export class CustomizeEmbedModal extends Modal {
 	private copyEmbed() {
 		const { viewerEl } = this.preview;
 		const link = createEmbedLink(this.app, this.file, viewerEl, this.attributes);
-		navigator.clipboard.writeText(link).then(
+		void navigator.clipboard.writeText(link).then(
 			() => {
 				new Notice("Copied to your clipboard");
 				this.close();

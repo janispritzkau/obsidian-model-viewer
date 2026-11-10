@@ -452,7 +452,9 @@ test("customizes an embed with a live preview", async () => {
 	assert.match(embed, /^!\[\[triangle\.glb#/);
 	await page.waitFor(`!(${modal})`);
 
-	await page.evaluate(`app.vault.create("Customized.md", ${JSON.stringify(embed)}).then(() => {})`);
+	await page.evaluate(
+		`app.vault.create("Customized.md", ${JSON.stringify(embed)}).then(() => {})`
+	);
 	await openFile("Customized.md");
 	await waitForModel();
 	assert.equal(await page.evaluate(`activeViewer().getAttribute("exposure")`), "1.5");
@@ -467,7 +469,9 @@ test("keeps special characters in embed attributes", async () => {
 		["Wikilink.md", `![[triangle.glb#${params}]]`],
 		["Markdown link.md", `![](triangle.glb#${params})`],
 	]) {
-		await page.evaluate(`app.vault.create(${JSON.stringify(note)}, ${JSON.stringify(embed)}).then(() => {})`);
+		await page.evaluate(
+			`app.vault.create(${JSON.stringify(note)}, ${JSON.stringify(embed)}).then(() => {})`
+		);
 		await openFile(note);
 		await waitForModel();
 		assert.equal(await page.evaluate(`activeViewer().getAttribute("alt")`), alt, note);
