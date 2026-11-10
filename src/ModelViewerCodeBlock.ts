@@ -28,7 +28,12 @@ interface Annotation {
  * string are turned back into the link text, so either way works.
  */
 function wikilink(value: unknown): string | null {
-	if (Array.isArray(value) && value.length == 1 && Array.isArray(value[0]) && value[0].length == 1) {
+	if (
+		Array.isArray(value) &&
+		value.length == 1 &&
+		Array.isArray(value[0]) &&
+		value[0].length == 1
+	) {
 		return typeof value[0][0] == "string" ? value[0][0] : null;
 	}
 	return null;
@@ -49,10 +54,12 @@ function parseAnnotation(value: unknown, index: number): Annotation | string {
 	}
 	const { id, position, normal, surface, text } = value as Record<string, unknown>;
 	for (const [key, field] of Object.entries({ position, normal, surface })) {
-		if (field != null && typeof field != "string") return `${name}: ${key} must be text in quotes`;
+		if (field != null && typeof field != "string")
+			return `${name}: ${key} must be text in quotes`;
 	}
 	if (surface == null && position == null) return `${name} needs a position`;
-	if (id != null && typeof id != "string" && typeof id != "number") return `${name}: id must be text`;
+	if (id != null && typeof id != "string" && typeof id != "number")
+		return `${name}: id must be text`;
 
 	let content: string;
 	const link = wikilink(text);
@@ -82,7 +89,9 @@ function parseAttributes(options: Record<string, unknown>): Record<string, strin
 		// Would run code from the note, which Obsidian doesn't allow in HTML either
 		if (/^on/i.test(key)) return `Event handlers aren't allowed: ${key}`;
 		if (value == null) continue;
-		if (typeof value == "object") return `${key} must be a single value`;
+		if (typeof value != "string" && typeof value != "number" && typeof value != "boolean") {
+			return `${key} must be a single value`;
+		}
 		attributes[key] = String(value);
 	}
 	return attributes;
@@ -219,7 +228,10 @@ function renderAnnotations(
 			ringEl.dataset.normal = annotation.normal ?? "0m 1m 0m";
 		}
 
-		const cardEl = layerEl.createDiv({ cls: "model-viewer-annotation-card", attr: { tabindex: -1 } });
+		const cardEl = layerEl.createDiv({
+			cls: "model-viewer-annotation-card",
+			attr: { tabindex: -1 },
+		});
 		// Scrolls inside the card, which would clip the line to the ring
 		const contentEl = cardEl.createDiv({ cls: "model-viewer-annotation-card-content" });
 		void MarkdownRenderer.render(app, annotation.text, contentEl, sourcePath, child);
@@ -290,7 +302,10 @@ function renderAnnotations(
 const RING_RADIUS = 14;
 
 /** Places the card beside its ring, on the side with the most room within the viewer. */
-function placeCard({ ringEl, cardEl }: { ringEl: HTMLElement; cardEl: HTMLElement }, viewerEl: ModelViewerElement) {
+function placeCard(
+	{ ringEl, cardEl }: { ringEl: HTMLElement; cardEl: HTMLElement },
+	viewerEl: ModelViewerElement
+) {
 	const ring = ringEl.getBoundingClientRect();
 	const viewer = viewerEl.getBoundingClientRect();
 	const x = ring.left + ring.width / 2 - viewer.left;
@@ -304,13 +319,12 @@ function placeCard({ ringEl, cardEl }: { ringEl: HTMLElement; cardEl: HTMLElemen
 
 	cardEl.toggleClass("mod-left", toLeft);
 	cardEl.toggleClass("mod-up", up);
-	cardEl.style.left = toLeft ? "" : `${x + RING_RADIUS}px`;
-	cardEl.style.right = toLeft ? `${viewer.width - x + RING_RADIUS}px` : "";
-	cardEl.style.top = up ? "" : `${y}px`;
-	cardEl.style.bottom = up ? `${viewer.height - y}px` : "";
-	cardEl.style.setProperty(
-		"--card-max-width",
-		`${Math.max(Math.max(left, right) - RING_RADIUS - CARD_MARGIN, CARD_MIN_WIDTH)}px`
-	);
-	cardEl.style.setProperty("--card-max-height", `${Math.max(above, below) - CARD_MARGIN}px`);
+	cardEl.setCssProps({
+		"--card-left": toLeft ? "auto" : `${x + RING_RADIUS}px`,
+		"--card-right": toLeft ? `${viewer.width - x + RING_RADIUS}px` : "auto",
+		"--card-top": up ? "auto" : `${y}px`,
+		"--card-bottom": up ? `${viewer.height - y}px` : "auto",
+		"--card-max-width": `${Math.max(Math.max(left, right) - RING_RADIUS - CARD_MARGIN, CARD_MIN_WIDTH)}px`,
+		"--card-max-height": `${Math.max(above, below) - CARD_MARGIN}px`,
+	});
 }
