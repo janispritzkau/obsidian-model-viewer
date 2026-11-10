@@ -143,6 +143,10 @@ model-viewer:has(> .model-viewer-annotation-layer) {
 .model-viewer-annotation-card {
 	display: none;
 	position: absolute;
+	top: var(--card-top, auto);
+	right: var(--card-right, auto);
+	bottom: var(--card-bottom, auto);
+	left: var(--card-left, auto);
 	width: max-content;
 	max-width: min(240px, var(--card-max-width, 240px));
 	cursor: auto;
@@ -189,7 +193,9 @@ model-viewer:has(> .model-viewer-annotation-layer) {
 }
 
 /* Closed annotations only preview the first paragraph */
-.model-viewer-annotation-card:not(.is-open) .model-viewer-annotation-card-content > :not(:first-child) {
+.model-viewer-annotation-card:not(.is-open)
+	.model-viewer-annotation-card-content
+	> :not(:first-child) {
 	display: none;
 }
 
