@@ -2,6 +2,7 @@ import { type App, type Component, normalizePath, Notice, Plugin, type TFile } f
 import extractLibs from "virtual:extract-libs";
 import { CustomizeEmbedModal } from "./CustomizeEmbedModal";
 import { createEmbedLink } from "./embedLink";
+import { renderCodeBlock } from "./ModelViewerCodeBlock";
 import { ModelViewerEmbed } from "./ModelViewerEmbed";
 import { ModelViewerFileView } from "./ModelViewerFileView";
 import { ModelViewerSettingTab } from "./ModelViewerSettingTab";
@@ -71,6 +72,10 @@ export default class ModelViewerPlugin extends Plugin {
 				this.settings,
 				Object.fromEntries(params.entries())
 			);
+		});
+
+		this.registerMarkdownCodeBlockProcessor("model-viewer", (source, el, ctx) => {
+			renderCodeBlock(this.app, this.settings, source, el, ctx);
 		});
 
 		this.addCommand({

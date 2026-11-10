@@ -18,13 +18,13 @@ after(async () => {
 	await obsidian?.close();
 });
 
-/** Opens a file in a new tab, using reading mode for notes. */
-const openFile = (path) =>
+/** Opens a file in a new tab, using reading mode for notes by default. */
+const openFile = (path, state = { mode: "preview" }) =>
 	page.evaluate(`(async () => {
 		const leaf = app.workspace.getLeaf(true);
 		await leaf.openFile(app.vault.getAbstractFileByPath(${JSON.stringify(path)}), {
 			active: true,
-			state: { mode: "preview" },
+			state: ${JSON.stringify(state)},
 		});
 	})()`);
 
@@ -476,6 +476,222 @@ test("keeps special characters in embed attributes", async () => {
 		await waitForModel();
 		assert.equal(await page.evaluate(`activeViewer().getAttribute("alt")`), alt, note);
 	}
+});
+
+test("renders a code block with options and an annotation", async () => {
+	await openFile("Annotated.md");
+	await waitForModel();
+
+	assert.equal(await page.evaluate(`activeViewer().getAttribute("exposure")`), "1.5");
+	assert.equal(await page.evaluate(`activeViewer().hasAttribute("camera-controls")`), false);
+	assert.equal(await page.evaluate(`getComputedStyle(activeViewer()).aspectRatio`), "16 / 9");
+	assert.equal(
+		await page.evaluate(`activeViewer().querySelectorAll(".model-viewer-annotation").length`),
+		2
+	);
+});
+
+const annotation = (index) =>
+	`activeViewer().querySelectorAll(".model-viewer-annotation")[${index}]`;
+const card = (index) =>
+	`activeViewer().querySelectorAll(".model-viewer-annotation-card")[${index}]`;
+const center = (element) =>
+	page.evaluate(`(() => {
+		const { x, y, width, height } = ${element}.getBoundingClientRect();
+		return { x: x + width / 2, y: y + height / 2 };
+	})()`);
+const visibleText = (index) => page.evaluate(`${card(index)}.innerText.trim()`);
+const isShown = (index) => page.evaluate(`getComputedStyle(${card(index)}).display !== "none"`);
+
+test("shows annotations on demand without covering their point", async () => {
+	await openFile("Annotated.md");
+	await waitForModel();
+	await page.waitFor(`${annotation(0)}.hasAttribute("data-visible")`);
+	await page.hover({ x: 0, y: 0 });
+
+	assert.equal(await isShown(0), false);
+	assert.equal(await isShown(1), false);
+
+	const pin = await center(annotation(0));
+	await page.hover(pin);
+	await page.waitFor(`getComputedStyle(${card(0)}).display !== "none"`);
+	assert.equal(await visibleText(0), "Part of Embed");
+
+	await page.click(pin);
+	await page.hover({ x: 0, y: 0 });
+	assert.match(await visibleText(0), /Only shown when open\./);
+
+	const covered = await page.evaluate(`(() => {
+		const { left, right, top, bottom } = ${card(0)}.getBoundingClientRect();
+		return ${pin.x} >= left && ${pin.x} <= right && ${pin.y} >= top && ${pin.y} <= bottom;
+	})()`);
+	assert.equal(covered, false);
+
+	await page.click(await center(annotation(1)));
+	await page.hover({ x: 0, y: 0 });
+	assert.equal(await isShown(0), false);
+	assert.equal(await isShown(1), true);
+
+	const fits = await page.evaluate(`(() => {
+		const viewer = activeViewer().getBoundingClientRect();
+		const { left, right, top, bottom } = ${card(1)}.getBoundingClientRect();
+		return left >= viewer.left && right <= viewer.right && top >= viewer.top && bottom <= viewer.bottom;
+	})()`);
+	assert.equal(fits, true);
+
+	await page.pressKey("Escape");
+	assert.equal(await isShown(1), false);
+
+	await page.click(await center(annotation(1)));
+	await page.click({ x: 5, y: 5 });
+	assert.equal(await isShown(1), false);
+});
+
+for (const { name, state } of [
+	{ name: "reading view", state: { mode: "preview" } },
+	{ name: "live preview", state: { mode: "source", source: false } },
+]) {
+	test(`opens links in annotations in ${name}`, async () => {
+		await openFile("Annotated.md", state);
+		await waitForModel();
+		await page.waitFor(
+			`${annotation(0)}.hasAttribute("data-visible") && !!${card(0)}.querySelector("a.internal-link")`
+		);
+		await page.click(await center(annotation(0)));
+		await page.click(await center(`${card(0)}.querySelector("a.internal-link")`));
+		await page.waitFor(`app.workspace.getActiveFile()?.path === "Embed.md"`, { timeout: 3000 });
+	});
+}
+
+test("draws an open card above other annotations and keeps it while rotating", async () => {
+	// Finds two points on the model, the second where the card of the first opens
+	await openFile("triangle.glb");
+	await waitForModel();
+	const points = await page.evaluate(`(() => {
+		const viewer = activeViewer();
+		const { x, y, width, height } = viewer.getBoundingClientRect();
+		const point = (dx, dy) => {
+			const hit = viewer.positionAndNormalFromPoint(x + width / 2 + dx, y + height / 2 + dy);
+			return hit && { position: hit.position.toString(), normal: hit.normal.toString() };
+		};
+		return [point(-20, 0), point(40, 20)];
+	})()`);
+	assert.ok(points[0] && points[1], "the triangle covers the center of the view");
+
+	const content = [
+		"```model-viewer",
+		"src: triangle.glb",
+		"annotations:",
+		...points.flatMap(({ position, normal }, index) => [
+			`  - position: "${position}"`,
+			`    normal: "${normal}"`,
+			`    text: "Annotation ${index + 1} with a longer text, so that its card is wide"`,
+		]),
+		"```",
+	].join("\n");
+	await page.evaluate(
+		`app.vault.create("Overlap.md", ${JSON.stringify(content)}).then(() => {})`
+	);
+	await openFile("Overlap.md");
+	await waitForModel();
+	await page.waitFor(
+		`${annotation(0)}.hasAttribute("data-visible") && ${annotation(1)}.hasAttribute("data-visible")`
+	);
+
+	await page.click(await center(annotation(0)));
+	await page.waitFor(`${card(0)}.classList.contains("is-open")`);
+	const covered = await center(annotation(1));
+	assert.equal(
+		await page.evaluate(
+			`${card(0)}.contains(document.elementFromPoint(${covered.x}, ${covered.y}))`
+		),
+		true,
+		"the open card is drawn above the other ring"
+	);
+
+	// Turns the model around, so the annotation ends up behind it
+	await page.evaluate(`(() => {
+		const viewer = activeViewer();
+		const { theta, phi } = viewer.getCameraOrbit();
+		viewer.cameraOrbit = (theta + Math.PI) + "rad " + phi + "rad auto";
+		viewer.jumpCameraToGoal();
+	})()`);
+	await page.waitFor(`!${annotation(0)}.hasAttribute("data-visible")`);
+	await new Promise((resolve) => setTimeout(resolve, 300));
+	assert.equal(await isShown(0), true, "the card stays open");
+	const cardCenter = await center(card(0));
+	assert.equal(
+		await page.evaluate(
+			`${card(0)}.contains(document.elementFromPoint(${cardCenter.x}, ${cardCenter.y}))`
+		),
+		true,
+		"the card can still be clicked"
+	);
+	assert.equal(await page.evaluate(`getComputedStyle(${card(0)}).opacity`), "1");
+});
+
+test("shows an error for invalid code blocks", async () => {
+	const block = (source) => "```model-viewer\n" + source + "\n```";
+	const cases = [
+		["src: Missing.glb", "File not found: Missing.glb"],
+		["aspect: 16:9", "Missing the src of the model"],
+		["src: [unclosed", /^Invalid YAML/],
+		["src: triangle.glb\nannotations:\n  - text: No position", "Annotation 1 needs a position"],
+		["src: triangle.glb\nonclick: alert(1)", "Event handlers aren't allowed: onclick"],
+		["src: triangle.glb\nmy option: 1", "Invalid option: my option"],
+		["src: triangle.glb\nposter:\n  file: a.png", "poster must be a single value"],
+		["src: triangle.glb\nannotations: none", "annotations must be a list"],
+		[
+			"src: triangle.glb\nannotations:\n  -",
+			"Annotation 1 must be a map with a position and text",
+		],
+		[
+			'src: triangle.glb\nannotations:\n  - position: "0m 0m 0m"\n    text:\n      a: 1',
+			"Annotation 1: put the text in quotes",
+		],
+		[
+			'src: triangle.glb\nannotations:\n  - id: a\n    position: "0m 0m 0m"\n  - id: a\n    position: "0m 0m 0m"',
+			"Annotation 2 has the same id as another one: a",
+		],
+	];
+	// One note per case, as reading view doesn't render blocks far below the viewport
+	for (const [index, [source, expected]] of cases.entries()) {
+		const note = `Error ${index + 1}.md`;
+		await page.evaluate(
+			`app.vault.create(${JSON.stringify(note)}, ${JSON.stringify(block(source))}).then(() => {})`
+		);
+		await openFile(note);
+		const error = await page.waitFor(
+			`document.querySelector(".workspace-leaf.mod-active .markdown-preview-view .model-viewer-error")?.textContent`
+		);
+		if (expected instanceof RegExp) assert.match(error, expected);
+		else assert.equal(error, expected);
+	}
+});
+
+test("accepts unquoted wikilinks in code blocks", async () => {
+	const content = [
+		"```model-viewer",
+		"src: [[triangle.glb]]",
+		"annotations:",
+		'  - position: "0m 0m 0m"',
+		"    text: [[Embed]]",
+		"```",
+	].join("\n");
+	await page.evaluate(
+		`app.vault.create("Unquoted.md", ${JSON.stringify(content)}).then(() => {})`
+	);
+	await openFile("Unquoted.md");
+	await waitForModel();
+	await page.waitFor(
+		`!!activeViewer().querySelector(".model-viewer-annotation-card a.internal-link")`
+	);
+	assert.equal(
+		await page.evaluate(
+			`activeViewer().querySelector(".model-viewer-annotation-card a").dataset.href`
+		),
+		"Embed"
+	);
 });
 
 test("logs no errors", () => {
