@@ -338,6 +338,86 @@ test("renders embeds after the plugin is reloaded", async () => {
 	assert.deepEqual(page.errors, []);
 });
 
+/**
+ * Opens the plugin's settings and waits until their window has settled. Closing the window
+ * right after opening it can make Obsidian throw while it updates the window's zoom.
+ */
+const openSettings = async () => {
+	await page.evaluate(`app.setting.open(); app.setting.openTabById("model-viewer"); void 0`);
+	await page.waitFor(
+		`app.setting.activeTab?.id === "model-viewer" && app.setting.activeTab.containerEl.isConnected`
+	);
+	await new Promise((resolve) => setTimeout(resolve, 300));
+};
+
+test("edits attributes in the settings and applies them to new embeds", async () => {
+	const settings = `app.plugins.plugins["model-viewer"].settings.embed.attributes`;
+	// Settings have their own window in recent versions of Obsidian
+	const settingsDocument = "app.setting.activeTab.containerEl.ownerDocument";
+	const row = (name) =>
+		`[...${settingsDocument}.querySelectorAll(".modal:not(.mod-settings) .setting-item")].find(
+			(item) => item.querySelector(".setting-item-name")?.textContent === ${JSON.stringify(name)}
+		)`;
+	const input = (name, selector, value) =>
+		page.evaluate(`(() => {
+			const control = ${row(name)}.querySelector(${JSON.stringify(selector)});
+			control.value = ${JSON.stringify(value)};
+			control.dispatchEvent(new Event("input", { bubbles: true }));
+			control.dispatchEvent(new Event("change", { bubbles: true }));
+		})()`);
+
+	await openSettings();
+	await page.evaluate(`(() => {
+		const buttons = [...app.setting.activeTab.containerEl.querySelectorAll("button")];
+		buttons.find((button) => button.textContent === "Edit" && button.closest(".setting-item")
+			.querySelector(".setting-item-description").textContent.includes("in embeds")).click();
+	})()`);
+	await page.waitFor(`!!(${row("Exposure")})`);
+	assert.equal(await page.evaluate(`!!(${row("Touch action")})`), true);
+	assert.equal(
+		await page.evaluate(
+			`${settingsDocument}.querySelector(".modal:not(.mod-settings) .modal-title").textContent`
+		),
+		"Embed attributes"
+	);
+
+	try {
+		await input("Exposure", "input", "1.5");
+		await input("Auto-rotate", "select", "true");
+		await input("Attributes", "input", "alt=A+triangle");
+		assert.deepEqual(await page.evaluate(settings), {
+			exposure: "1.5",
+			"auto-rotate": "true",
+			alt: "A triangle",
+		});
+
+		await input("Auto-rotate", "select", "");
+		assert.deepEqual(await page.evaluate(settings), { exposure: "1.5", alt: "A triangle" });
+
+		// An attribute with a control that is typed in the raw field shows up in its control
+		await input("Attributes", "input", "alt=A+triangle&shadow-intensity=0.5");
+		assert.equal(
+			await page.evaluate(`${row("Shadow intensity")}.querySelector("input").value`),
+			"0.5"
+		);
+		await input("Shadow intensity", "input", "");
+
+		// Closes settings with the modal still open, which used to make Obsidian throw
+		await page.evaluate("app.setting.close()");
+		await openFile("Embed.md");
+		await waitForModel();
+		assert.equal(await page.evaluate(`activeViewer().getAttribute("exposure")`), "1.5");
+		assert.equal(await page.evaluate(`activeViewer().getAttribute("alt")`), "A triangle");
+	} finally {
+		await page.evaluate(`(() => {
+			app.setting.close();
+			const plugin = app.plugins.plugins["model-viewer"];
+			plugin.settings.embed.attributes = {};
+			return plugin.saveSettings();
+		})()`);
+	}
+});
+
 test("logs no errors", () => {
 	assert.deepEqual(page.errors, []);
 });

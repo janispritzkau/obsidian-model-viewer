@@ -66,6 +66,8 @@ You can also use any of the attributes supported by the \<model-viewer\> compone
 
 The documentation for all available attributes can be found here: https://modelviewer.dev/docs/index.html
 
+Defaults for all models, the file view and embeds can be edited in the plugin settings.
+
 ## Network access and bundled binaries
 
 The plugin doesn't collect data or contact any server on its own. It fetches only what your models and embeds reference: the model file, its textures and buffers, and any images you set in attributes such as `skybox-image` or `poster`. Files in your vault are loaded locally. If a model or attribute points to a URL on the web, that URL is fetched.
