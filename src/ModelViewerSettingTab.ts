@@ -1,8 +1,52 @@
-import { App, PluginSettingTab, Setting } from "obsidian";
+import {
+	App,
+	PluginSettingTab,
+	Setting,
+	type SettingDefinition,
+	type SettingDefinitionGroup,
+	type SettingDefinitionItem,
+	type SettingDefinitionRender,
+} from "obsidian";
 import type ModelViewerPlugin from "./main";
-import type { AttributeScope } from "./attributes";
+import { attributeGroupsFor, type AttributeScope } from "./attributes";
 import { AttributesModal } from "./AttributesModal";
+import type { ModelViewerSettings } from "./settings";
 
+/** Settings with a plain control, keyed by section and name, such as `embed.maxHeight`. */
+type ControlKey = {
+	[
+		S in keyof ModelViewerSettings
+	]: `${S}.${Exclude<keyof ModelViewerSettings[S], "attributes"> & string}`;
+}[keyof ModelViewerSettings];
+
+type EditableScope = Exclude<AttributeScope, "customizeEmbed">;
+
+const ATTRIBUTE_SETTINGS: Record<
+	EditableScope,
+	{ section: keyof ModelViewerSettings; name: string; desc: string }
+> = {
+	defaults: {
+		section: "modelViewer",
+		name: "Default attributes",
+		desc: "Applied to every model",
+	},
+	fileView: {
+		section: "fileView",
+		name: "File view attributes",
+		desc: "Override the defaults in the file view",
+	},
+	embed: {
+		section: "embed",
+		name: "Embed attributes",
+		desc: "Override the defaults in embeds",
+	},
+};
+
+/**
+ * The settings are declared in getSettingDefinitions(), which makes them show up in the
+ * search of Obsidian 1.13 and later. Older versions call display(), which renders the same
+ * definitions by hand.
+ */
 export class ModelViewerSettingTab extends PluginSettingTab {
 	plugin: ModelViewerPlugin;
 	private modal: AttributesModal | null = null;
@@ -10,6 +54,72 @@ export class ModelViewerSettingTab extends PluginSettingTab {
 	constructor(app: App, plugin: ModelViewerPlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
+	}
+
+	getSettingDefinitions(): SettingDefinitionItem<ControlKey>[] {
+		return [
+			{ type: "group", items: [this.attributesDefinition("defaults")] },
+			{
+				type: "group",
+				heading: "File view",
+				items: [
+					{
+						name: "Enable overlay",
+						desc: "Show overlay if the model has multiple variants or animations",
+						control: { type: "toggle", key: "fileView.enableOverlay" },
+					},
+					this.attributesDefinition("fileView"),
+				],
+			},
+			{
+				type: "group",
+				heading: "Embed",
+				items: [
+					{
+						name: "Aspect ratio",
+						desc: "The aspect ratio of the model viewer embed",
+						control: { type: "text", key: "embed.aspectRatio", placeholder: "1:1" },
+					},
+					{
+						name: "Max height",
+						desc: "Scales the embed according to the aspect ratio until it reaches this height",
+						control: { type: "number", key: "embed.maxHeight", min: 0 },
+					},
+					{
+						name: "Enable overlay",
+						desc: "Show overlay if the model has multiple variants or animations",
+						control: { type: "toggle", key: "embed.enableOverlay" },
+					},
+					this.attributesDefinition("embed"),
+				],
+			},
+		] satisfies SettingDefinitionGroup<ControlKey>[];
+	}
+
+	getControlValue(key: string): unknown {
+		const [section, name] = key.split(".") as [keyof ModelViewerSettings, string];
+		return (this.plugin.settings[section] as Record<string, unknown>)[name];
+	}
+
+	async setControlValue(key: string, value: unknown): Promise<void> {
+		const [section, name] = key.split(".") as [keyof ModelViewerSettings, string];
+		(this.plugin.settings[section] as Record<string, unknown>)[name] = value;
+		await this.plugin.saveSettings();
+	}
+
+	/** Renders the definitions on Obsidian versions before 1.13, which don't do it themselves. */
+	display(): void {
+		const { containerEl } = this;
+		containerEl.empty();
+
+		for (const item of this.getSettingDefinitions()) {
+			if (!("type" in item) || item.type !== "group") continue;
+			if (item.heading) new Setting(containerEl).setHeading().setName(item.heading);
+			for (const definition of item.items ?? []) {
+				if ("type" in definition) continue;
+				this.renderDefinition(new Setting(containerEl), definition);
+			}
+		}
 	}
 
 	hide(): void {
@@ -20,119 +130,74 @@ export class ModelViewerSettingTab extends PluginSettingTab {
 		super.hide();
 	}
 
-	display(): void {
-		const { containerEl } = this;
+	private renderDefinition(setting: Setting, definition: SettingDefinition<ControlKey>) {
+		setting.setName(definition.name);
+		if (definition.desc) setting.setDesc(definition.desc);
 
-		containerEl.empty();
+		if (definition.render) {
+			// Only Obsidian's own renderer has a group to pass
+			definition.render(setting, undefined as never);
+			return;
+		}
+		const { control } = definition;
+		if (!control) return;
 
-		this.addAttributesSetting("Default attributes", "defaults", "Applied to every model", {
-			get: () => this.plugin.settings.modelViewer.attributes,
-			set: (value) => (this.plugin.settings.modelViewer.attributes = value),
-		});
-
-		new Setting(containerEl).setHeading().setName("File view");
-
-		new Setting(containerEl)
-			.setName("Enable overlay")
-			.setDesc("Show overlay if the model has multiple variants or animations")
-			.addToggle((toggle) => {
-				toggle.setValue(this.plugin.settings.fileView.enableOverlay);
-				toggle.onChange(async (value) => {
-					this.plugin.settings.fileView.enableOverlay = value;
-					await this.plugin.saveSettings();
+		const value = this.getControlValue(control.key);
+		const save = (value: unknown) => void this.setControlValue(control.key, value);
+		if (control.type === "toggle") {
+			setting.addToggle((toggle) => toggle.setValue(value === true).onChange(save));
+		} else if (control.type === "text") {
+			setting.addText((text) =>
+				text
+					.setPlaceholder(control.placeholder ?? "")
+					.setValue(typeof value == "string" ? value : "")
+					.onChange(save)
+			);
+		} else if (control.type === "number") {
+			setting.addText((text) => {
+				text.inputEl.type = "number";
+				text.setValue(typeof value == "number" ? String(value) : "").onChange((input) => {
+					const number = parseInt(input);
+					if (!Number.isNaN(number)) save(number);
 				});
 			});
-
-		this.addAttributesSetting(
-			"Attributes",
-			"fileView",
-			"Override the defaults in the file view",
-			{
-				get: () => this.plugin.settings.fileView.attributes,
-				set: (value) => (this.plugin.settings.fileView.attributes = value),
-			}
-		);
-
-		new Setting(containerEl).setHeading().setName("Embed");
-
-		new Setting(containerEl)
-			.setName("Aspect ratio")
-			.setDesc("The aspect ratio of the model viewer embed")
-			.addText((text) => {
-				text.setValue(this.plugin.settings.embed.aspectRatio);
-				text.onChange(async (value) => {
-					this.plugin.settings.embed.aspectRatio = value;
-					await this.plugin.saveSettings();
-				});
-			});
-
-		new Setting(containerEl)
-			.setName("Max height")
-			.setDesc("Scales the embed according to the aspect ratio until it reaches this height")
-			.addText((text) => {
-				text.setValue(this.plugin.settings.embed.maxHeight.toString());
-				text.onChange(async (value) => {
-					this.plugin.settings.embed.maxHeight = parseInt(value);
-					await this.plugin.saveSettings();
-				});
-			});
-
-		new Setting(containerEl)
-			.setName("Enable overlay")
-			.setDesc("Show overlay if the model has multiple variants or animations")
-			.addToggle((toggle) => {
-				toggle.setValue(this.plugin.settings.embed.enableOverlay);
-				toggle.onChange(async (value) => {
-					this.plugin.settings.embed.enableOverlay = value;
-					await this.plugin.saveSettings();
-				});
-			});
-
-		this.addAttributesSetting("Attributes", "embed", "Override the defaults in embeds", {
-			get: () => this.plugin.settings.embed.attributes,
-			set: (value) => (this.plugin.settings.embed.attributes = value),
-		});
+		}
 	}
 
-	private addAttributesSetting(
-		name: string,
-		scope: AttributeScope,
-		desc: string,
-		attributes: {
-			get: () => Record<string, string>;
-			set: (value: Record<string, string>) => void;
-		}
-	) {
+	/** A row that summarizes the attributes of a scope and opens the editor for them. */
+	private attributesDefinition(scope: EditableScope): SettingDefinitionRender {
+		const { section, name, desc } = ATTRIBUTE_SETTINGS[scope];
+		const attributes = () => this.plugin.settings[section].attributes;
 		const summary = () => {
-			const names = Object.keys(attributes.get());
+			const names = Object.keys(attributes());
 			return `${desc}. ${names.length > 0 ? `Set: ${names.join(", ")}` : "None set"}`;
 		};
 
-		const setting = new Setting(this.containerEl)
-			.setName(name)
-			.setDesc(summary())
-			.addButton((button) => {
-				button.setButtonText("Edit").onClick(() => {
-					const titles: Record<AttributeScope, string> = {
-						defaults: "Default attributes",
-						fileView: "File view attributes",
-						embed: "Embed attributes",
-						customizeEmbed: "Customize embed",
-					};
-					const title = titles[scope];
-					this.modal = new AttributesModal(
-						this.app,
-						title,
-						attributes.get(),
-						scope,
-						(value) => {
-							attributes.set(value);
-							setting.setDesc(summary());
-							void this.plugin.saveSettings();
-						}
-					);
-					this.modal.open();
+		return {
+			name,
+			desc,
+			// Lets a search for an attribute, such as "exposure", find where it's set
+			aliases: attributeGroupsFor(scope).flatMap((group) =>
+				group.attributes.flatMap((attribute) => [attribute.label, attribute.name])
+			),
+			render: (setting) => {
+				setting.setDesc(summary()).addButton((button) => {
+					button.setButtonText("Edit").onClick(() => {
+						this.modal = new AttributesModal(
+							this.app,
+							name,
+							attributes(),
+							scope,
+							(value) => {
+								this.plugin.settings[section].attributes = value;
+								setting.setDesc(summary());
+								void this.plugin.saveSettings();
+							}
+						);
+						this.modal.open();
+					});
 				});
-			});
+			},
+		};
 	}
 }
