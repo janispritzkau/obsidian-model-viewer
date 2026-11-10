@@ -1,5 +1,7 @@
 import { type App, type Component, normalizePath, Notice, Plugin, type TFile } from "obsidian";
 import extractLibs from "virtual:extract-libs";
+import { CustomizeEmbedModal } from "./CustomizeEmbedModal";
+import { createEmbedLink } from "./embedLink";
 import { ModelViewerEmbed } from "./ModelViewerEmbed";
 import { ModelViewerFileView } from "./ModelViewerFileView";
 import { ModelViewerSettingTab } from "./ModelViewerSettingTab";
@@ -78,25 +80,29 @@ export default class ModelViewerPlugin extends Plugin {
 				const activeView = this.app.workspace.getActiveViewOfType(ModelViewerFileView);
 				if (activeView?.file != null) {
 					if (checking) return true;
-					const modelViewer = activeView.viewerEl;
-					const orbit = modelViewer.getCameraOrbit();
-					const target = modelViewer.getCameraTarget();
-					const fieldOfView = modelViewer.getFieldOfView();
-					const link = this.app.fileManager.generateMarkdownLink(
-						activeView.file,
-						"",
-						"#" +
-							new URLSearchParams({
-								"camera-orbit": orbit.toString(),
-								"camera-target": target.toString(),
-								"field-of-view": fieldOfView.toString() + "deg",
-							}).toString()
+					const link = createEmbedLink(this.app, activeView.file, activeView.viewerEl);
+					void navigator.clipboard.writeText(link).then(
+						() => new Notice("Copied to your clipboard"),
+						() => new Notice("Couldn't copy to the clipboard")
 					);
-					// generateMarkdownLink only produces a plain link for glb/gltf files
-					const embed = link.startsWith("!") ? link : "!" + link;
-					void navigator.clipboard.writeText(embed).then(() => {
-						new Notice("Copied to your clipboard");
-					});
+				}
+				return false;
+			},
+		});
+
+		this.addCommand({
+			id: "customize-embed",
+			name: "Customize embed",
+			checkCallback: (checking) => {
+				const activeView = this.app.workspace.getActiveViewOfType(ModelViewerFileView);
+				if (activeView?.file != null) {
+					if (checking) return true;
+					new CustomizeEmbedModal(
+						this.app,
+						activeView.file,
+						activeView.viewerEl,
+						this.settings
+					).open();
 				}
 				return false;
 			},

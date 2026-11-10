@@ -58,3 +58,23 @@
 	aspect-ratio: 1;
 	padding-inline: 0;
 }
+
+.model-viewer-customize-preview,
+.model-viewer-customize-footer {
+	position: sticky;
+	z-index: 1;
+	background: var(--background-primary);
+}
+
+.model-viewer-customize-preview {
+	top: 0;
+}
+
+.model-viewer-customize-preview .model-viewer-element {
+	max-width: var(--model-viewer-preview-max-width, none);
+	margin-inline: auto;
+}
+
+.model-viewer-customize-footer {
+	bottom: 0;
+}

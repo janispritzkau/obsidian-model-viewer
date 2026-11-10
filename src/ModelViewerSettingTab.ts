@@ -113,11 +113,13 @@ export class ModelViewerSettingTab extends PluginSettingTab {
 			.setDesc(summary())
 			.addButton((button) => {
 				button.setButtonText("Edit").onClick(() => {
-					const title = {
+					const titles: Record<AttributeScope, string> = {
 						defaults: "Default attributes",
 						fileView: "File view attributes",
 						embed: "Embed attributes",
-					}[scope];
+						customizeEmbed: "Customize embed",
+					};
+					const title = titles[scope];
 					this.modal = new AttributesModal(
 						this.app,
 						title,
