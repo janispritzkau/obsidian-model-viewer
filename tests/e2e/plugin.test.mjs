@@ -338,6 +338,18 @@ test("renders embeds after the plugin is reloaded", async () => {
 	assert.deepEqual(page.errors, []);
 });
 
+/**
+ * Opens the plugin's settings and waits until their window has settled. Closing the window
+ * right after opening it can make Obsidian throw while it updates the window's zoom.
+ */
+const openSettings = async () => {
+	await page.evaluate(`app.setting.open(); app.setting.openTabById("model-viewer"); void 0`);
+	await page.waitFor(
+		`app.setting.activeTab?.id === "model-viewer" && app.setting.activeTab.containerEl.isConnected`
+	);
+	await new Promise((resolve) => setTimeout(resolve, 300));
+};
+
 test("edits attributes in the settings and applies them to new embeds", async () => {
 	const settings = `app.plugins.plugins["model-viewer"].settings.embed.attributes`;
 	// Settings have their own window in recent versions of Obsidian
@@ -354,9 +366,8 @@ test("edits attributes in the settings and applies them to new embeds", async ()
 			control.dispatchEvent(new Event("change", { bubbles: true }));
 		})()`);
 
+	await openSettings();
 	await page.evaluate(`(() => {
-		app.setting.open();
-		app.setting.openTabById("model-viewer");
 		const buttons = [...app.setting.activeTab.containerEl.querySelectorAll("button")];
 		buttons.find((button) => button.textContent === "Edit" && button.closest(".setting-item")
 			.querySelector(".setting-item-description").textContent.includes("in embeds")).click();
