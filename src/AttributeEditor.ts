@@ -29,13 +29,14 @@ export class AttributeEditor {
 
 		new Setting(containerEl).setHeading().setName("Other attributes");
 
-		const desc = document.createDocumentFragment();
-		desc.appendText("URL-formatted attributes without a control above (see ");
-		desc.createEl("a", {
-			href: "https://modelviewer.dev/docs/index.html",
-			text: "modelviewer.dev/docs/",
+		const desc = createFragment((fragment) => {
+			fragment.appendText("URL-formatted attributes without a control above (see ");
+			fragment.createEl("a", {
+				href: "https://modelviewer.dev/docs/index.html",
+				text: "modelviewer.dev/docs/",
+			});
+			fragment.appendText(")");
 		});
-		desc.appendText(")");
 
 		new Setting(containerEl)
 			.setName("Attributes")
@@ -68,9 +69,13 @@ export class AttributeEditor {
 		if (definition.type === "text") {
 			setting.addText((text) => {
 				// "false" removes an attribute, which is how a value from the defaults is cleared
-				text.setPlaceholder(this.scope === "defaults" ? unset : `${unset}, or false to remove`);
+				text.setPlaceholder(
+					this.scope === "defaults" ? unset : `${unset}, or false to remove`
+				);
 				text.setValue(value).onChange(update);
-				this.controls.set(definition.name, (value) => text.setValue(value));
+				this.controls.set(definition.name, (value) => {
+					text.setValue(value);
+				});
 			});
 			return;
 		}
@@ -92,7 +97,11 @@ export class AttributeEditor {
 			}
 			const show = (value: string) => {
 				// A boolean attribute that is present without a value, as in HTML, is on
-				if (definition.type === "boolean" && value === "" && definition.name in this.attributes) {
+				if (
+					definition.type === "boolean" &&
+					value === "" &&
+					definition.name in this.attributes
+				) {
 					value = "true";
 				}
 				// Keeps values from before this editor visible instead of showing a blank

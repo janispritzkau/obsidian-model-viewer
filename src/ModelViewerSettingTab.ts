@@ -43,10 +43,15 @@ export class ModelViewerSettingTab extends PluginSettingTab {
 				});
 			});
 
-		this.addAttributesSetting("Attributes", "fileView", "Override the defaults in the file view", {
-			get: () => this.plugin.settings.fileView.attributes,
-			set: (value) => (this.plugin.settings.fileView.attributes = value),
-		});
+		this.addAttributesSetting(
+			"Attributes",
+			"fileView",
+			"Override the defaults in the file view",
+			{
+				get: () => this.plugin.settings.fileView.attributes,
+				set: (value) => (this.plugin.settings.fileView.attributes = value),
+			}
+		);
 
 		new Setting(containerEl).setHeading().setName("Embed");
 
@@ -113,11 +118,17 @@ export class ModelViewerSettingTab extends PluginSettingTab {
 						fileView: "File view attributes",
 						embed: "Embed attributes",
 					}[scope];
-					this.modal = new AttributesModal(this.app, title, attributes.get(), scope, async (value) => {
-						attributes.set(value);
-						setting.setDesc(summary());
-						await this.plugin.saveSettings();
-					});
+					this.modal = new AttributesModal(
+						this.app,
+						title,
+						attributes.get(),
+						scope,
+						(value) => {
+							attributes.set(value);
+							setting.setDesc(summary());
+							void this.plugin.saveSettings();
+						}
+					);
 					this.modal.open();
 				});
 			});

@@ -364,7 +364,9 @@ test("edits attributes in the settings and applies them to new embeds", async ()
 	await page.waitFor(`!!(${row("Exposure")})`);
 	assert.equal(await page.evaluate(`!!(${row("Touch action")})`), true);
 	assert.equal(
-		await page.evaluate(`${settingsDocument}.querySelector(".modal:not(.mod-settings) .modal-title").textContent`),
+		await page.evaluate(
+			`${settingsDocument}.querySelector(".modal:not(.mod-settings) .modal-title").textContent`
+		),
 		"Embed attributes"
 	);
 
@@ -383,7 +385,10 @@ test("edits attributes in the settings and applies them to new embeds", async ()
 
 		// An attribute with a control that is typed in the raw field shows up in its control
 		await input("Attributes", "input", "alt=A+triangle&shadow-intensity=0.5");
-		assert.equal(await page.evaluate(`${row("Shadow intensity")}.querySelector("input").value`), "0.5");
+		assert.equal(
+			await page.evaluate(`${row("Shadow intensity")}.querySelector("input").value`),
+			"0.5"
+		);
 		await input("Shadow intensity", "input", "");
 
 		// Closes settings with the modal still open, which used to make Obsidian throw
