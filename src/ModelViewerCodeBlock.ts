@@ -109,7 +109,8 @@ export function renderCodeBlock(
 
 	let config: unknown;
 	try {
-		config = parseYaml(source);
+		// YAML doesn't allow tabs for indentation, but Obsidian indents with them by default
+		config = parseYaml(source.replace(/^\t+/gm, (tabs) => "  ".repeat(tabs.length)));
 	} catch (error) {
 		showError(`Invalid YAML: ${(error as Error).message}`);
 		return;
@@ -172,20 +173,35 @@ function renderAnnotations(
 	interface Item {
 		ringEl: HTMLElement;
 		cardEl: HTMLElement;
+		empty: boolean;
 	}
 	const items: Item[] = [];
 	let open: Item | null = null;
 	let preview: Item | null = null;
+	let frame = 0;
+	const win = viewerEl.win;
+
+	// Cards follow their ring every frame while shown. Rings are only moved after
+	// camera-change fires, and surface annotations move with animations without one.
+	const follow = () => {
+		frame = 0;
+		const shown = [open, preview].filter((item) => item != null);
+		if (shown.length == 0 || !viewerEl.isConnected) return;
+		for (const item of shown) placeCard(item, viewerEl);
+		frame = win.requestAnimationFrame(follow);
+	};
+	child.register(() => win.cancelAnimationFrame(frame));
 
 	const update = () => {
 		for (const item of items) {
-			const shown = item == open || item == preview;
+			const shown = (item == open || item == preview) && !item.empty;
 			item.ringEl.toggleClass("is-open", item == open);
 			item.ringEl.setAttribute("aria-expanded", String(item == open));
 			item.cardEl.toggleClass("is-open", item == open);
 			item.cardEl.toggleClass("is-shown", shown);
 			if (shown) placeCard(item, viewerEl);
 		}
+		if (!frame && (open || preview)) frame = win.requestAnimationFrame(follow);
 	};
 
 	const setOpen = (item: Item | null) => {
@@ -195,9 +211,20 @@ function renderAnnotations(
 	};
 
 	const setPreview = (item: Item | null) => {
+		win.clearTimeout(hideTimer);
 		preview = item;
 		update();
 	};
+
+	// Hides a hovered card after a moment, so the pointer can move from the ring onto it
+	let hideTimer = 0;
+	const hidePreviewSoon = (item: Item) => {
+		win.clearTimeout(hideTimer);
+		hideTimer = win.setTimeout(() => {
+			if (preview == item) setPreview(null);
+		}, HOVER_DELAY);
+	};
+	child.register(() => win.clearTimeout(hideTimer));
 
 	const ids = new Set<string>();
 
@@ -215,9 +242,15 @@ function renderAnnotations(
 		}
 		ids.add(slot);
 
+		const contentId = `model-viewer-annotation-${annotationCount++}`;
 		const ringEl = viewerEl.createDiv({
 			cls: "model-viewer-annotation",
-			attr: { role: "button", tabindex: 0, "aria-expanded": false },
+			attr: {
+				role: "button",
+				tabindex: 0,
+				"aria-expanded": false,
+				"aria-labelledby": contentId,
+			},
 		});
 		ringEl.slot = slot;
 		ringEl.dataset.visibilityAttribute = "visible";
@@ -233,18 +266,25 @@ function renderAnnotations(
 			attr: { tabindex: -1 },
 		});
 		// Scrolls inside the card, which would clip the line to the ring
-		const contentEl = cardEl.createDiv({ cls: "model-viewer-annotation-card-content" });
+		const contentEl = cardEl.createDiv({
+			cls: "model-viewer-annotation-card-content",
+			attr: { id: contentId },
+		});
 		void MarkdownRenderer.render(app, annotation.text, contentEl, sourcePath, child);
 
-		const item: Item = { ringEl, cardEl };
+		const item: Item = { ringEl, cardEl, empty: annotation.text.trim() == "" };
 		items.push(item);
 
-		child.registerDomEvent(ringEl, "pointerenter", (event) => {
-			if (event.pointerType == "mouse") setPreview(item);
-		});
-		child.registerDomEvent(ringEl, "pointerleave", () => {
-			if (preview == item) setPreview(null);
-		});
+		for (const el of [ringEl, cardEl]) {
+			child.registerDomEvent(el, "pointerenter", (event) => {
+				if (event.pointerType == "mouse" && (el == ringEl || preview == item)) {
+					setPreview(item);
+				}
+			});
+			child.registerDomEvent(el, "pointerleave", () => {
+				if (preview == item) hidePreviewSoon(item);
+			});
+		}
 		child.registerDomEvent(ringEl, "focus", () => {
 			if (ringEl.matches(":focus-visible")) setPreview(item);
 		});
@@ -272,18 +312,13 @@ function renderAnnotations(
 
 	let pointerDown = { x: 0, y: 0 };
 
-	child.registerDomEvent(viewerEl, "camera-change" as keyof HTMLElementEventMap, () => {
-		// Cards follow their ring, and stay usable while it's behind the model
-		for (const item of [open, preview]) if (item) placeCard(item, viewerEl);
-	});
 	child.registerDomEvent(doc, OPEN_EVENT as keyof DocumentEventMap, (event) => {
 		if ((event as CustomEvent).detail != viewerEl && open) setOpen(null);
 	});
 	child.registerDomEvent(doc, "keydown", (event) => {
 		if (event.key != "Escape" || (!open && !preview)) return;
-		const focusedEl = doc.activeElement as HTMLElement | null;
-		// a focused ring would keep showing its preview
-		if (focusedEl && viewerEl.contains(focusedEl)) focusedEl.blur();
+		// Focus goes back to the ring of a card it was in, instead of the top of the note
+		if (open?.cardEl.contains(doc.activeElement)) open.ringEl.focus();
 		preview = null;
 		setOpen(null);
 	});
@@ -297,6 +332,12 @@ function renderAnnotations(
 		if (moved < 5) setOpen(null);
 	});
 }
+
+/** How long a hovered card stays after the pointer leaves, to reach it from the ring. */
+const HOVER_DELAY = 300;
+
+/** Makes the ids of annotation texts unique across code blocks. */
+let annotationCount = 0;
 
 /** Half the size of a ring, which is where the line to the card ends. */
 const RING_RADIUS = 14;

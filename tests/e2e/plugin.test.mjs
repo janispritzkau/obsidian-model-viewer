@@ -593,6 +593,21 @@ test("shows annotations on demand without covering their point", async () => {
 	await page.hover(pin);
 	await page.waitFor(`getComputedStyle(${card(0)}).display !== "none"`);
 	assert.equal(await visibleText(0), "Part of Embed");
+	// Rings are named by their text for screen readers
+	assert.equal(
+		await page.evaluate(
+			`document.getElementById(${annotation(0)}.getAttribute("aria-labelledby")) === ${card(0)}.firstElementChild`
+		),
+		true
+	);
+
+	// The pointer can move from the ring onto the card, to reach its links
+	await page.hover(await center(card(0)));
+	await new Promise((resolve) => setTimeout(resolve, 500));
+	assert.equal(await isShown(0), true);
+	await page.hover({ x: 0, y: 0 });
+	await page.waitFor(`getComputedStyle(${card(0)}).display === "none"`, { timeout: 2000 });
+	await page.hover(pin);
 
 	await page.click(pin);
 	await page.hover({ x: 0, y: 0 });
@@ -622,6 +637,20 @@ test("shows annotations on demand without covering their point", async () => {
 	await page.click(await center(annotation(1)));
 	await page.click({ x: 5, y: 5 });
 	assert.equal(await isShown(1), false);
+});
+
+test("opens annotations with the keyboard and returns focus on Escape", async () => {
+	await openFile("Annotated.md");
+	await waitForModel();
+	await page.waitFor(`${annotation(0)}.hasAttribute("data-visible")`);
+	await page.evaluate(`${annotation(0)}.focus()`);
+	await page.pressKey("Enter");
+	assert.equal(await page.evaluate(`${card(0)}.classList.contains("is-open")`), true);
+	assert.equal(await page.evaluate(`document.activeElement === ${card(0)}`), true);
+
+	await page.pressKey("Escape");
+	assert.equal(await isShown(0), false);
+	assert.equal(await page.evaluate(`document.activeElement === ${annotation(0)}`), true);
 });
 
 for (const { name, state } of [
@@ -768,6 +797,27 @@ test("accepts unquoted wikilinks in code blocks", async () => {
 			`activeViewer().querySelector(".model-viewer-annotation-card a").dataset.href`
 		),
 		"Embed"
+	);
+});
+
+test("accepts tabs for indentation in code blocks", async () => {
+	const content = [
+		"```model-viewer",
+		"src: triangle.glb",
+		"annotations:",
+		'\t- position: "0m 0m 0m"',
+		"\t  text: Indented with a tab",
+		"```",
+	].join("\n");
+	await page.evaluate(`app.vault.create("Tabs.md", ${JSON.stringify(content)}).then(() => {})`);
+	await openFile("Tabs.md");
+	await waitForModel();
+	await page.waitFor(`!!activeViewer().querySelector(".model-viewer-annotation-card p")`);
+	assert.equal(
+		await page.evaluate(
+			`activeViewer().querySelector(".model-viewer-annotation-card").innerText.trim()`
+		),
+		"Indented with a tab"
 	);
 });
 

@@ -107,20 +107,30 @@
 }
 
 .model-viewer-annotation:not([data-visible]) {
-	opacity: 0.25;
+	opacity: 0.35;
 	pointer-events: none;
 }
 
-/* A hollow ring, so that the point it marks stays visible */
+/*
+ * A ring with a tinted center, which stands out on light and dark models while the
+ * point it marks stays visible
+ */
 .model-viewer-annotation::before {
 	content: "";
 	position: absolute;
-	inset: 8px;
-	border: 2px solid white;
+	inset: 4px;
+	border: 3px solid white;
 	border-radius: 50%;
+	background-color: rgba(0, 0, 0, 0.25);
 	box-shadow:
-		0 0 0 1px rgba(0, 0, 0, 0.6),
-		inset 0 0 0 1px rgba(0, 0, 0, 0.6);
+		0 0 0 1px rgba(0, 0, 0, 0.5),
+		0 1px 4px rgba(0, 0, 0, 0.5),
+		inset 0 0 0 1px rgba(0, 0, 0, 0.5);
+	transition: transform 0.15s;
+}
+
+.model-viewer-annotation:hover::before {
+	transform: scale(1.15);
 }
 
 .model-viewer-annotation.is-open::before {
@@ -136,7 +146,7 @@
 }
 
 /* Keeps the z-index of the annotation layer from reaching Obsidian's own popups */
-model-viewer:has(> .model-viewer-annotation-layer) {
+.model-viewer-element:has(> .model-viewer-annotation-layer) {
 	isolation: isolate;
 }
 
