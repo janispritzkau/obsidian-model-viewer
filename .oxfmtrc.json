@@ -3,5 +3,5 @@
 	"printWidth": 100,
 	"useTabs": true,
 	"trailingComma": "es5",
-	"ignorePatterns": ["lib/**", "main.js", "tests/e2e/vault/**", "**/*.md", "**/*.yml", "**/*.json"]
+	"ignorePatterns": ["lib/**", "main.js", "tests/e2e/vault/**", "example-vault/.obsidian/**", "**/*.md", "**/*.yml", "**/*.json"]
 }

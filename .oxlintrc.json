@@ -19,7 +19,8 @@
 	"ignorePatterns": [
 		"main.js",
 		"lib/**",
-		"tests/e2e/vault/**"
+		"tests/e2e/vault/**",
+		"example-vault/.obsidian/**"
 	],
 	"rules": {
 		"typescript/no-floating-promises": "error",

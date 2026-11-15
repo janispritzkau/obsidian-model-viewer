@@ -1,4 +1,4 @@
-import { cp, mkdir, writeFile } from "node:fs/promises";
+import { cp, mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname, join, normalize, posix } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -24,12 +24,21 @@ const FILES = [
 	`${modelViewer}/environments/spruit_sunrise_1k_HDR.hdr`,
 ];
 
+/** Downloads a file, unless an earlier run already did, and returns its contents. */
 async function download(url, path) {
-	const response = await fetch(url);
+	try {
+		return await readFile(path);
+	} catch (error) {
+		if (error.code != "ENOENT") throw error;
+	}
+	console.log(`Downloading ${posix.basename(url)}`);
+	const response = await fetch(url, { signal: AbortSignal.timeout(60_000) });
 	if (!response.ok) throw new Error(`Failed to download ${url}: ${response.status}`);
 	const data = Buffer.from(await response.arrayBuffer());
 	await mkdir(dirname(path), { recursive: true });
-	await writeFile(path, data);
+	// Written under another name first, so an interrupted run doesn't leave a partial file
+	await writeFile(`${path}.download`, data);
+	await rename(`${path}.download`, path);
 	return data;
 }
 
@@ -50,7 +59,6 @@ async function downloadGltf(url, dir) {
 
 for (const url of FILES) {
 	const name = posix.basename(url);
-	console.log(`Downloading ${name}`);
 	if (name.endsWith(".gltf")) {
 		await downloadGltf(url, join(modelsDir, name.replace(/\.gltf$/, "")));
 	} else {
@@ -62,6 +70,11 @@ await mkdir(pluginDir, { recursive: true });
 for (const file of ["main.js", "manifest.json", "styles.css"]) {
 	await cp(join(repoDir, file), join(pluginDir, file));
 }
-await writeFile(join(vaultDir, ".obsidian", "community-plugins.json"), '["model-viewer"]\n');
 
-console.log(`Open ${vaultDir} as a vault in Obsidian`);
+// Keeps other plugins enabled in the vault, such as Hot Reload
+const pluginsPath = join(vaultDir, ".obsidian", "community-plugins.json");
+const plugins = JSON.parse(await readFile(pluginsPath, "utf8").catch(() => "[]"));
+if (!plugins.includes("model-viewer")) plugins.push("model-viewer");
+await writeFile(pluginsPath, JSON.stringify(plugins, null, "\t") + "\n");
+
+console.log(`Open ${vaultDir} as a vault in Obsidian, or reload the plugin if it's open`);
