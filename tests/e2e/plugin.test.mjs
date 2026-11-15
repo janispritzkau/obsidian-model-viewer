@@ -365,6 +365,16 @@ test("edits attributes in the settings and applies them to new embeds", async ()
 			control.dispatchEvent(new Event("input", { bubbles: true }));
 			control.dispatchEvent(new Event("change", { bubbles: true }));
 		})()`);
+	/** Types each prefix of `value` into the raw field without leaving it. */
+	const type = (value) =>
+		page.evaluate(`(() => {
+			const control = ${row("Attributes")}.querySelector("input");
+			for (let i = 1; i <= ${value.length}; i++) {
+				control.value = ${JSON.stringify(value)}.slice(0, i);
+				control.dispatchEvent(new Event("input", { bubbles: true }));
+			}
+		})()`);
+	const rawValue = () => page.evaluate(`${row("Attributes")}.querySelector("input").value`);
 
 	await openSettings();
 	await page.evaluate(`(() => {
@@ -400,7 +410,26 @@ test("edits attributes in the settings and applies them to new embeds", async ()
 			await page.evaluate(`${row("Shadow intensity")}.querySelector("input").value`),
 			"0.5"
 		);
+		assert.equal(await rawValue(), "alt=A+triangle");
 		await input("Shadow intensity", "input", "");
+		await input("Attributes", "input", "alt=A+triangle&reveal=manual");
+		assert.deepEqual(await page.evaluate(settings), {
+			exposure: "1.5",
+			alt: "A triangle",
+			reveal: "manual",
+		});
+
+		// A partial name that has a control doesn't stay set while typing
+		await input("Attributes", "input", "");
+		await type("auto-rotate-delay=0");
+		assert.deepEqual(await page.evaluate(settings), {
+			exposure: "1.5",
+			"auto-rotate-delay": "0",
+		});
+		await type("alt=A+triangle&exposure=2");
+		assert.equal(await page.evaluate(`${settings}.exposure`), "2");
+		await type("alt=A+triangle");
+		assert.equal(await page.evaluate(`${settings}.exposure`), "1.5");
 
 		// Closes settings with the modal still open, which used to make Obsidian throw
 		await page.evaluate("app.setting.close()");

@@ -8,6 +8,11 @@ export class AttributeEditor {
 	private known: Set<string>;
 	/** Shows a new value in the control of a known attribute. */
 	private controls = new Map<string, (value: string) => void>();
+	/**
+	 * Previous values of attributes with a control that the raw field currently sets, so they
+	 * come back when the text no longer sets them.
+	 */
+	private rawOverrides = new Map<string, string | undefined>();
 
 	constructor(
 		containerEl: HTMLElement,
@@ -16,6 +21,7 @@ export class AttributeEditor {
 		private onChange: (attributes: Record<string, string>) => void
 	) {
 		this.attributes = { ...attributes };
+		containerEl.addClass("model-viewer-attribute-editor");
 
 		const groups = attributeGroupsFor(scope);
 		this.known = new Set(groups.flatMap((group) => group.attributes.map((a) => a.name)));
@@ -43,19 +49,36 @@ export class AttributeEditor {
 			.setDesc(desc)
 			.addText((text) => {
 				text.setValue(stringifyAttributes(this.otherAttributes()));
-				text.onChange((value) => {
-					for (const name in this.otherAttributes()) {
-						delete this.attributes[name];
+				text.onChange((value) => this.applyRaw(value));
+				// Attributes with a control move there once the field is left, so the two never
+				// disagree. Not while typing, as a partial name such as `auto-rotate` in
+				// `auto-rotate-delay` would set an attribute.
+				text.inputEl.addEventListener("change", () => {
+					for (const name of this.rawOverrides.keys()) {
+						this.controls.get(name)?.(this.attributes[name] ?? "");
 					}
-					const parsed = parseAttributes(value);
-					Object.assign(this.attributes, parsed);
-					// Attributes with a control are shown there, so the two never disagree
-					for (const name in parsed) {
-						this.controls.get(name)?.(parsed[name]);
-					}
-					this.emit();
+					this.rawOverrides.clear();
+					text.setValue(stringifyAttributes(this.otherAttributes()));
 				});
 			});
+	}
+
+	private applyRaw(value: string) {
+		for (const name in this.otherAttributes()) {
+			delete this.attributes[name];
+		}
+		for (const [name, previous] of this.rawOverrides) {
+			if (previous === undefined) delete this.attributes[name];
+			else this.attributes[name] = previous;
+		}
+		this.rawOverrides.clear();
+
+		const parsed = parseAttributes(value);
+		for (const name in parsed) {
+			if (this.known.has(name)) this.rawOverrides.set(name, this.attributes[name]);
+			this.attributes[name] = parsed[name];
+		}
+		this.emit();
 	}
 
 	private addControl(containerEl: HTMLElement, definition: AttributeDefinition) {

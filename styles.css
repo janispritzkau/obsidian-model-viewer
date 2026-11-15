@@ -58,3 +58,14 @@
 	aspect-ratio: 1;
 	padding-inline: 0;
 }
+
+/* Headings in settings groups are indented, which doesn't fit the rows of a modal */
+.model-viewer-attribute-editor .setting-item-heading {
+	padding-inline: 0;
+}
+
+/* Wide enough for the placeholder that explains how to remove an inherited value */
+.model-viewer-attribute-editor .setting-item-control input[type="text"] {
+	width: 15em;
+	max-width: 100%;
+}
