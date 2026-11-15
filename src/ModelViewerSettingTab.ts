@@ -83,7 +83,12 @@ export class ModelViewerSettingTab extends PluginSettingTab {
 					{
 						name: "Max height",
 						desc: "Scales the embed according to the aspect ratio until it reaches this height",
-						control: { type: "number", key: "embed.maxHeight", min: 0 },
+						control: {
+							type: "number",
+							key: "embed.maxHeight",
+							min: 0,
+							placeholder: "No limit",
+						},
 					},
 					{
 						name: "Enable overlay",
@@ -156,9 +161,11 @@ export class ModelViewerSettingTab extends PluginSettingTab {
 		} else if (control.type === "number") {
 			setting.addText((text) => {
 				text.inputEl.type = "number";
+				text.setPlaceholder(control.placeholder ?? "");
 				text.setValue(typeof value == "number" ? String(value) : "").onChange((input) => {
-					const number = parseInt(input);
-					if (!Number.isNaN(number)) save(number);
+					// Like Obsidian's own number control: empty means 0, which is no limit
+					const number = input.trim() === "" ? 0 : parseInt(input);
+					if (!Number.isNaN(number) && number >= (control.min ?? -Infinity)) save(number);
 				});
 			});
 		}
