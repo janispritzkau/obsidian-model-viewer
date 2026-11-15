@@ -58,6 +58,8 @@ const CLEAR_MODEL_TIMEOUT_MS = 10;
 
 export class ModelViewerComponent extends MarkdownRenderChild {
 	viewerEl: ModelViewerElement;
+	private sourcePath: string;
+	private attributeNames: string[] = [];
 
 	constructor(
 		containerEl: HTMLElement,
@@ -109,14 +111,23 @@ export class ModelViewerComponent extends MarkdownRenderChild {
 		}
 		this.viewerEl.setCssProps(size);
 
-		const sourcePath = options.sourcePath ?? "";
-		for (const key in options.attributes) {
-			if (!isAllowedAttribute(key)) continue;
-			const raw = options.attributes[key];
+		this.sourcePath = options.sourcePath ?? "";
+		this.setAttributes(options.attributes ?? {});
+	}
+
+	/** Applies attributes and removes the ones set by a previous call that are now missing. */
+	setAttributes(attributes: Record<string, unknown>) {
+		for (const key of this.attributeNames) {
+			if (!(key in attributes)) this.viewerEl.removeAttribute(key);
+		}
+		this.attributeNames = Object.keys(attributes).filter(isAllowedAttribute);
+
+		for (const key of this.attributeNames) {
+			const raw = attributes[key];
 			if (raw == "false") {
 				this.viewerEl.removeAttribute(key);
 			} else {
-				const value = this.resolveAttributeValue(key, String(raw), sourcePath);
+				const value = this.resolveAttributeValue(key, String(raw), this.sourcePath);
 				this.viewerEl.setAttribute(key, value);
 			}
 		}

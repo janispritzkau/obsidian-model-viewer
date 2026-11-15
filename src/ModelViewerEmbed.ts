@@ -3,6 +3,12 @@ import { Component, type App, type TFile } from "obsidian";
 import { ModelViewerComponent, type ModelViewerComponentOptions } from "./ModelViewerComponent";
 import type { ModelViewerSettings } from "./settings";
 
+/** Attributes every embed starts with, below the ones from the settings. */
+export const EMBED_BASE_ATTRIBUTES = {
+	// not in DEFAULT_SETTINGS, as saved settings replace the default attributes
+	"touch-action": "pan-y",
+};
+
 export class ModelViewerEmbed extends Component {
 	private viewer: ModelViewerComponent;
 	private viewerEl: ModelViewerElement;
@@ -29,8 +35,7 @@ export class ModelViewerEmbed extends Component {
 			maxHeight: settings.embed.maxHeight,
 			sourcePath: this.file.path,
 			attributes: {
-				// not in DEFAULT_SETTINGS, as saved settings replace the default attributes
-				"touch-action": "pan-y",
+				...EMBED_BASE_ATTRIBUTES,
 				...settings.modelViewer.attributes,
 				...settings.embed.attributes,
 				...attributes,

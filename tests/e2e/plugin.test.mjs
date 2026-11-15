@@ -447,6 +447,114 @@ test("edits attributes in the settings and applies them to new embeds", async ()
 	}
 });
 
+test("customizes an embed with a live preview", async () => {
+	await openFile("triangle.glb");
+	await waitForModel();
+	await page.evaluate(`delete window.__clipboard`);
+	await page.evaluate(`app.commands.executeCommandById("model-viewer:customize-embed")`);
+
+	const modal = `document.querySelector(".modal:has(model-viewer)")`;
+	const preview = `${modal}.querySelector("model-viewer")`;
+	await page.waitFor(`!!(${modal}) && ${preview}.loaded && ${preview}.modelIsVisible`);
+
+	await page.evaluate(`(() => {
+		const row = [...${modal}.querySelectorAll(".setting-item")].find(
+			(item) => item.querySelector(".setting-item-name")?.textContent === "Exposure"
+		);
+		const input = row.querySelector("input");
+		input.value = "1.5";
+		input.dispatchEvent(new Event("input", { bubbles: true }));
+	})()`);
+	assert.equal(await page.evaluate(`${preview}.getAttribute("exposure")`), "1.5");
+
+	// The preview keeps its camera controls, so it can still be framed
+	await page.evaluate(`(() => {
+		const row = [...${modal}.querySelectorAll(".setting-item")].find(
+			(item) => item.querySelector(".setting-item-name")?.textContent === "Camera controls"
+		);
+		const select = row.querySelector("select");
+		select.value = "false";
+		select.dispatchEvent(new Event("change", { bubbles: true }));
+	})()`);
+	assert.equal(await page.evaluate(`${preview}.hasAttribute("camera-controls")`), true);
+
+	await page.evaluate(`(() => {
+		const preview = ${preview};
+		preview.cameraOrbit = "1rad 1rad auto";
+		preview.jumpCameraToGoal();
+	})()`);
+	await page.waitFor(`Math.abs(${preview}.getCameraOrbit().theta - 1) < 0.01`);
+	await page.evaluate(
+		`[...${modal}.querySelectorAll("button")].find((button) => button.textContent === "Copy embed").click()`
+	);
+
+	const embed = await page.waitFor("window.__clipboard");
+	assert.match(embed, /^!\[\[triangle\.glb#/);
+	await page.waitFor(`!(${modal})`);
+
+	await page.evaluate(
+		`app.vault.create("Customized.md", ${JSON.stringify(embed)}).then(() => {})`
+	);
+	await openFile("Customized.md");
+	await waitForModel();
+	assert.equal(await page.evaluate(`activeViewer().getAttribute("exposure")`), "1.5");
+	assert.equal(await page.evaluate(`activeViewer().hasAttribute("camera-controls")`), false);
+	await page.waitFor("Math.abs(activeViewer().getCameraOrbit().theta - 1) < 0.01");
+});
+
+test("copies embeds that keep special characters as Markdown links", async () => {
+	// "%41" would be decoded to "A" if the link were decoded twice
+	const alt = "100%41 & 50% / ?";
+	await page.evaluate(`app.vault.setConfig("useMarkdownLinks", true)`);
+	try {
+		await openFile("triangle.glb");
+		await waitForModel();
+		await page.evaluate(`delete window.__clipboard`);
+		await page.evaluate(`app.commands.executeCommandById("model-viewer:customize-embed")`);
+		const modal = `document.querySelector(".modal:has(model-viewer)")`;
+		await page.waitFor(`!!(${modal})`);
+		await page.evaluate(`(() => {
+			const row = [...${modal}.querySelectorAll(".setting-item")].find(
+				(item) => item.querySelector(".setting-item-name")?.textContent === "Attributes"
+			);
+			const input = row.querySelector("input");
+			input.value = ${JSON.stringify(new URLSearchParams({ alt }).toString())};
+			input.dispatchEvent(new Event("input", { bubbles: true }));
+		})()`);
+		await page.evaluate(
+			`[...${modal}.querySelectorAll("button")].find((button) => button.textContent === "Copy embed").click()`
+		);
+		const embed = await page.waitFor("window.__clipboard");
+		assert.match(embed, /^!\[[^\]]*\]\(triangle\.glb#/);
+
+		await page.evaluate(
+			`app.vault.create("Markdown embed.md", ${JSON.stringify(embed)}).then(() => {})`
+		);
+		await openFile("Markdown embed.md");
+		await waitForModel();
+		assert.equal(await page.evaluate(`activeViewer().getAttribute("alt")`), alt);
+	} finally {
+		await page.evaluate(`app.vault.setConfig("useMarkdownLinks", false)`);
+	}
+});
+
+test("keeps special characters in embed attributes", async () => {
+	// Encoded like createEmbedLink does, with URLSearchParams
+	const alt = "A & B + 50% = ?";
+	const params = new URLSearchParams({ alt }).toString();
+	for (const [note, embed] of [
+		["Wikilink.md", `![[triangle.glb#${params}]]`],
+		["Markdown link.md", `![](triangle.glb#${params})`],
+	]) {
+		await page.evaluate(
+			`app.vault.create(${JSON.stringify(note)}, ${JSON.stringify(embed)}).then(() => {})`
+		);
+		await openFile(note);
+		await waitForModel();
+		assert.equal(await page.evaluate(`activeViewer().getAttribute("alt")`), alt, note);
+	}
+});
+
 test("logs no errors", () => {
 	assert.deepEqual(page.errors, []);
 });

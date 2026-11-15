@@ -69,3 +69,23 @@
 	width: 15em;
 	max-width: 100%;
 }
+
+.model-viewer-customize-modal {
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+.model-viewer-customize-modal .modal-content {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
+}
+
+.model-viewer-customize-preview {
+	position: sticky;
+	top: 0;
+	z-index: 1;
+	padding-bottom: var(--size-4-2);
+	background: var(--background-primary);
+}

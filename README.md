@@ -68,6 +68,8 @@ The documentation for all available attributes can be found here: https://modelv
 
 Defaults for all models, the file view and embeds can be edited in the plugin settings.
 
+To build an embed visually, open a model and run the **Customize embed** command. It lets you frame the model in a live preview, try out attributes and copy the finished embed.
+
 ## Network access and bundled binaries
 
 The plugin doesn't collect data or contact any server on its own. It fetches only what your models and embeds reference: the model file, its textures and buffers, and any images you set in attributes such as `skybox-image` or `poster`. Files in your vault are loaded locally. If a model or attribute points to a URL on the web, that URL is fetched.
