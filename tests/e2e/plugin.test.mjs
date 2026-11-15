@@ -467,6 +467,17 @@ test("customizes an embed with a live preview", async () => {
 	})()`);
 	assert.equal(await page.evaluate(`${preview}.getAttribute("exposure")`), "1.5");
 
+	// The preview keeps its camera controls, so it can still be framed
+	await page.evaluate(`(() => {
+		const row = [...${modal}.querySelectorAll(".setting-item")].find(
+			(item) => item.querySelector(".setting-item-name")?.textContent === "Camera controls"
+		);
+		const select = row.querySelector("select");
+		select.value = "false";
+		select.dispatchEvent(new Event("change", { bubbles: true }));
+	})()`);
+	assert.equal(await page.evaluate(`${preview}.hasAttribute("camera-controls")`), true);
+
 	await page.evaluate(`(() => {
 		const preview = ${preview};
 		preview.cameraOrbit = "1rad 1rad auto";
@@ -487,7 +498,44 @@ test("customizes an embed with a live preview", async () => {
 	await openFile("Customized.md");
 	await waitForModel();
 	assert.equal(await page.evaluate(`activeViewer().getAttribute("exposure")`), "1.5");
+	assert.equal(await page.evaluate(`activeViewer().hasAttribute("camera-controls")`), false);
 	await page.waitFor("Math.abs(activeViewer().getCameraOrbit().theta - 1) < 0.01");
+});
+
+test("copies embeds that keep special characters as Markdown links", async () => {
+	// "%41" would be decoded to "A" if the link were decoded twice
+	const alt = "100%41 & 50% / ?";
+	await page.evaluate(`app.vault.setConfig("useMarkdownLinks", true)`);
+	try {
+		await openFile("triangle.glb");
+		await waitForModel();
+		await page.evaluate(`delete window.__clipboard`);
+		await page.evaluate(`app.commands.executeCommandById("model-viewer:customize-embed")`);
+		const modal = `document.querySelector(".modal:has(model-viewer)")`;
+		await page.waitFor(`!!(${modal})`);
+		await page.evaluate(`(() => {
+			const row = [...${modal}.querySelectorAll(".setting-item")].find(
+				(item) => item.querySelector(".setting-item-name")?.textContent === "Attributes"
+			);
+			const input = row.querySelector("input");
+			input.value = ${JSON.stringify(new URLSearchParams({ alt }).toString())};
+			input.dispatchEvent(new Event("input", { bubbles: true }));
+		})()`);
+		await page.evaluate(
+			`[...${modal}.querySelectorAll("button")].find((button) => button.textContent === "Copy embed").click()`
+		);
+		const embed = await page.waitFor("window.__clipboard");
+		assert.match(embed, /^!\[[^\]]*\]\(triangle\.glb#/);
+
+		await page.evaluate(
+			`app.vault.create("Markdown embed.md", ${JSON.stringify(embed)}).then(() => {})`
+		);
+		await openFile("Markdown embed.md");
+		await waitForModel();
+		assert.equal(await page.evaluate(`activeViewer().getAttribute("alt")`), alt);
+	} finally {
+		await page.evaluate(`app.vault.setConfig("useMarkdownLinks", false)`);
+	}
 });
 
 test("keeps special characters in embed attributes", async () => {
