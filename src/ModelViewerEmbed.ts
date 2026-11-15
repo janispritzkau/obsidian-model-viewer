@@ -11,7 +11,7 @@ export const EMBED_BASE_ATTRIBUTES = {
 
 export class ModelViewerEmbed extends Component {
 	private viewer: ModelViewerComponent;
-	private viewerEl: ModelViewerElement;
+	viewerEl: ModelViewerElement;
 	private observer: MutationObserver;
 
 	constructor(

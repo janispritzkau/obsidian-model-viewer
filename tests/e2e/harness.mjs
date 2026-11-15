@@ -123,6 +123,22 @@ class Page {
 		await mouse("mouseReleased", to, { clickCount: 1 });
 	}
 
+	async click({ x, y }) {
+		const mouse = (type) =>
+			this.send("Input.dispatchMouseEvent", { type, x, y, button: "left", clickCount: 1 });
+		await mouse("mousePressed");
+		await mouse("mouseReleased");
+	}
+
+	hover({ x, y }) {
+		return this.send("Input.dispatchMouseEvent", { type: "mouseMoved", x, y });
+	}
+
+	async pressKey(key) {
+		await this.send("Input.dispatchKeyEvent", { type: "keyDown", key, code: key });
+		await this.send("Input.dispatchKeyEvent", { type: "keyUp", key, code: key });
+	}
+
 	/** Swipes with one finger between two points. */
 	async swipe(from, to, steps = 12) {
 		await this.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 1 });
