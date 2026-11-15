@@ -1,3 +1,12 @@
+# [1.2.0](https://github.com/janispritzkau/obsidian-model-viewer/compare/1.1.2...1.2.0) (2026-11-15)
+
+### Features
+
+* add command to customize an embed with a live preview ([#18](https://github.com/janispritzkau/obsidian-model-viewer/issues/18)) ([1ed4e2b](https://github.com/janispritzkau/obsidian-model-viewer/commit/1ed4e2b0fc6ca9e7d9300c666db917a1b0b60ec0)), closes [#4](https://github.com/janispritzkau/obsidian-model-viewer/issues/4)
+* add model-viewer code blocks with annotations ([#20](https://github.com/janispritzkau/obsidian-model-viewer/issues/20)) ([c46a659](https://github.com/janispritzkau/obsidian-model-viewer/commit/c46a65969e8e2dc9c4f80e6e64944a9cd8473190)), closes [#1](https://github.com/janispritzkau/obsidian-model-viewer/issues/1)
+* edit attributes with controls in the settings ([#17](https://github.com/janispritzkau/obsidian-model-viewer/issues/17)) ([e61d214](https://github.com/janispritzkau/obsidian-model-viewer/commit/e61d214e6d1f3ef96118d950591066224e8aefbb))
+* make the settings searchable ([#32](https://github.com/janispritzkau/obsidian-model-viewer/issues/32)) ([9b31af3](https://github.com/janispritzkau/obsidian-model-viewer/commit/9b31af3cbf8ec53cf8f1d2caf6be2a65c260022f))
+
 ## [1.1.2](https://github.com/janispritzkau/obsidian-model-viewer/compare/1.1.1...1.1.2) (2026-11-09)
 
 ### Bug Fixes
